@@ -132,6 +132,14 @@ export const useTaskStore = create<TaskStore>()(
     }),
     {
       name: 'schedule-app-data',
+      version: 2,
+      migrate: (state: unknown) => {
+        const s = state as { tasks?: unknown[]; projects?: unknown[]; users?: { id: string }[] }
+        const existingUsers = s?.users ?? []
+        const existingIds = new Set(existingUsers.map((u) => u.id))
+        const missingUsers = sampleUsers.filter((u) => !existingIds.has(u.id))
+        return { ...s, users: [...existingUsers, ...missingUsers] }
+      },
     }
   )
 )

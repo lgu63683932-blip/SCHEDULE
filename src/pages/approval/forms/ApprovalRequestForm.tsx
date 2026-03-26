@@ -5,6 +5,7 @@ import { useDocumentStore } from '../../../store/documentStore'
 import { useTaskStore } from '../../../store/taskStore'
 import { useCodeStore } from '../../../store/codeStore'
 import { ApprovalRequestDoc, AttachmentMeta } from '../../../types/document'
+import { sampleUsers } from '../../../data/sampleData'
 
 const DEFAULT_STEPS = (users: { id: string; name: string }[]) => [
   { userId: 'user1', role: '기안자' },
@@ -45,7 +46,7 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const existing = editId ? getDocument(editId) as ApprovalRequestDoc | undefined : undefined
-  const currentUser = users.find((u) => u.id === currentUserId)
+  const currentUser = users.find((u) => u.id === currentUserId) ?? sampleUsers.find((u) => u.id === currentUserId)
   const today = new Date().toISOString().split('T')[0]
 
   // 문서 헤더

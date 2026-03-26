@@ -98,6 +98,16 @@ export const useCodeStore = create<CodeStore>()(
         return get().getActiveItems(groupCode).map((i) => i.label)
       },
     }),
-    { name: 'schedule-codes' }
+    {
+      name: 'schedule-codes',
+      version: 2,
+      migrate: (state: unknown) => {
+        const s = state as { codeGroups?: { groupCode: string }[] }
+        const existing = s?.codeGroups ?? []
+        const existingCodes = new Set(existing.map((g) => g.groupCode))
+        const missing = sampleCodeGroups.filter((g) => !existingCodes.has(g.groupCode))
+        return { ...s, codeGroups: [...existing, ...missing] }
+      },
+    }
   )
 )
