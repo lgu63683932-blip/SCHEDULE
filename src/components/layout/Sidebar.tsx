@@ -29,20 +29,26 @@ const PROJECT_ICONS = ['🌐', '📱', '📢', '📊', '🎯', '💡', '🚀', '
 const NavGroup: React.FC<{
   label: string
   icon: React.ReactNode
+  color: string        // 카테고리 색상 (Tailwind text color class)
+  bgColor: string      // 아이콘 배경색 (Tailwind bg class)
   open: boolean
   onToggle: () => void
   onAdd?: () => void
   children: React.ReactNode
-}> = ({ label, icon, open, onToggle, onAdd, children }) => (
+}> = ({ label, icon, color, bgColor, open, onToggle, onAdd, children }) => (
   <div className="px-2 mt-1">
     <div
-      className="flex items-center justify-between px-2.5 py-1 rounded-md cursor-pointer hover:bg-notion-hover group mb-0.5"
+      className="flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer hover:bg-notion-hover group mb-0.5"
       onClick={onToggle}
     >
-      <div className="flex items-center gap-1.5 text-xs font-semibold text-notion-textSecondary uppercase tracking-wide">
-        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        <span className="mr-1 opacity-70">{icon}</span>
-        {label}
+      <div className="flex items-center gap-2">
+        <span className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${bgColor}`}>
+          <span className={color}>{icon}</span>
+        </span>
+        <span className={`text-xs font-bold tracking-wide ${color}`}>{label}</span>
+        <span className="text-notion-textSecondary">
+          {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+        </span>
       </div>
       {onAdd && (
         <button
@@ -53,7 +59,7 @@ const NavGroup: React.FC<{
         </button>
       )}
     </div>
-    {open && <div className="space-y-0.5">{children}</div>}
+    {open && <div className="space-y-0.5 ml-2">{children}</div>}
   </div>
 )
 
@@ -129,25 +135,29 @@ export const Sidebar: React.FC = () => {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2">
-        {/* 대시보드 */}
+        {/* 대시보드 — 회색 */}
         <div className="px-2 mb-1">
           <Link
             to="/"
-            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${
               isActive('/')
                 ? 'bg-notion-active text-notion-text font-medium'
                 : 'text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text'
             }`}
           >
-            <LayoutDashboard size={16} />
-            대시보드
+            <span className="w-5 h-5 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
+              <LayoutDashboard size={13} className="text-gray-600" />
+            </span>
+            <span className="text-xs font-bold tracking-wide text-gray-600">대시보드</span>
           </Link>
         </div>
 
-        {/* 일정관리 */}
+        {/* 일정관리 — 파란색 */}
         <NavGroup
           label="일정관리"
           icon={<CalendarDays size={13} />}
+          color="text-blue-600"
+          bgColor="bg-blue-100"
           open={scheduleOpen}
           onToggle={() => setScheduleOpen(!scheduleOpen)}
         >
@@ -156,10 +166,12 @@ export const Sidebar: React.FC = () => {
           {navLink('/inbox', '받은 편지함', <Inbox size={15} />)}
         </NavGroup>
 
-        {/* 전자결재 */}
+        {/* 전자결재 — 초록색 */}
         <NavGroup
           label="전자결재"
           icon={<ClipboardCheck size={13} />}
+          color="text-emerald-600"
+          bgColor="bg-emerald-100"
           open={approvalOpen}
           onToggle={() => setApprovalOpen(!approvalOpen)}
         >
@@ -168,10 +180,12 @@ export const Sidebar: React.FC = () => {
           {navLink('/approval/my-documents', '내문서함', <FolderOpen size={15} />)}
         </NavGroup>
 
-        {/* 결재등록 */}
+        {/* 결재등록 — 주황색 */}
         <NavGroup
           label="결재등록"
           icon={<FileSignature size={13} />}
+          color="text-orange-600"
+          bgColor="bg-orange-100"
           open={registerOpen}
           onToggle={() => setRegisterOpen(!registerOpen)}
         >
@@ -180,10 +194,12 @@ export const Sidebar: React.FC = () => {
           {navLink('/approval/new/expense', '지출결의서', <Receipt size={15} />)}
         </NavGroup>
 
-        {/* 프로젝트 */}
+        {/* 프로젝트 — 보라색 */}
         <NavGroup
           label="프로젝트"
           icon={<FolderKanban size={13} />}
+          color="text-purple-600"
+          bgColor="bg-purple-100"
           open={projectsOpen}
           onToggle={() => setProjectsOpen(!projectsOpen)}
           onAdd={() => { setAddingProject(true); setProjectsOpen(true) }}
