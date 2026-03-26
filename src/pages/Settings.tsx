@@ -1,18 +1,19 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { Header } from '../components/layout/Header'
 import { useTaskStore } from '../store/taskStore'
+import { useCodeStore } from '../store/codeStore'
 import {
   User, Bell, Palette, Database, Shield, ChevronRight,
-  Users, Plus, Edit2, Trash2, X, Check, Eye, EyeOff, Search
+  Users, Plus, Edit2, Trash2, X, Check, Eye, EyeOff, Search,
+  ListTree, ChevronDown, ChevronUp
 } from 'lucide-react'
 import {
   UserStatus, USER_STATUS_LABELS, USER_STATUS_CODES, USER_STATUS_COLORS
 } from '../types'
+import { CodeGroup } from '../types/code'
 
 const AVATAR_OPTIONS = ['👨‍💻', '👩‍💼', '👨‍🎨', '👩‍🔬', '👨‍💼', '👩‍💻', '👨‍🔬', '👩‍🎨', '🧑‍💼', '👤']
 const COLOR_OPTIONS = ['#2383e2', '#0f7b6c', '#cb912f', '#eb5757', '#9065b0', '#d9730d', '#448361', '#337ea9']
-const DEPARTMENTS = ['개발팀', '디자인팀', '마케팅팀', '영업팀', '인사팀', '재무팀', '기획팀', '운영팀']
-const POSITIONS = ['대표이사', '부서장', '팀장', '선임', '주임', '사원', '인턴']
 const ALL_STATUSES: UserStatus[] = ['active', 'inactive', 'password_assigned']
 
 interface UserFormData {
@@ -74,6 +75,9 @@ const useDraggable = () => {
 
 const UserManagement: React.FC = () => {
   const { users, addUser, updateUser, deleteUser } = useTaskStore()
+  const { getActiveItems } = useCodeStore()
+  const deptItems = getActiveItems('DEPT')
+  const posItems = getActiveItems('POSITION')
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<UserStatus | 'all'>('all')
   const [showModal, setShowModal] = useState(false)
@@ -376,8 +380,7 @@ const UserManagement: React.FC = () => {
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">부서</label>
                   <select value={form.department} onChange={(e) => set('department', e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
-                    {DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}
-                    <option value="기타">기타</option>
+                    {deptItems.map((d) => <option key={d.id} value={d.label}>{d.label}</option>)}
                   </select>
                 </div>
                 {/* 직위 */}
@@ -385,7 +388,7 @@ const UserManagement: React.FC = () => {
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">직위</label>
                   <select value={form.position} onChange={(e) => set('position', e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
-                    {POSITIONS.map((p) => <option key={p}>{p}</option>)}
+                    {posItems.map((p) => <option key={p.id} value={p.label}>{p.label}</option>)}
                   </select>
                 </div>
               </div>
@@ -481,12 +484,340 @@ const UserManagement: React.FC = () => {
   )
 }
 
+// ────────────────────────────────────────────────────────────
+// CodeManagement
+// ────────────────────────────────────────────────────────────
+const CodeManagement: React.FC = () => {
+  const {
+    codeGroups, addCodeGroup, updateCodeGroup, deleteCodeGroup,
+    addCodeItem, updateCodeItem, deleteCodeItem,
+  } = useCodeStore()
+
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(
+    codeGroups[0]?.id ?? null
+  )
+
+  // Group form
+  const [showGroupForm, setShowGroupForm] = useState(false)
+  const [groupForm, setGroupForm] = useState({ groupCode: '', groupName: '', description: '' })
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+
+  // Item form
+  const [showItemForm, setShowItemForm] = useState(false)
+  const [itemForm, setItemForm] = useState({ code: '', label: '', order: '' })
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+
+  const selectedGroup = codeGroups.find((g) => g.id === selectedGroupId) ?? null
+
+  // ── Group handlers ──────────────────────────
+  const openAddGroup = () => {
+    setGroupForm({ groupCode: '', groupName: '', description: '' })
+    setEditingGroupId(null)
+    setShowGroupForm(true)
+  }
+
+  const openEditGroup = (g: CodeGroup) => {
+    setGroupForm({ groupCode: g.groupCode, groupName: g.groupName, description: g.description ?? '' })
+    setEditingGroupId(g.id)
+    setShowGroupForm(true)
+  }
+
+  const saveGroup = () => {
+    if (!groupForm.groupName.trim()) return
+    if (editingGroupId) {
+      updateCodeGroup(editingGroupId, { groupName: groupForm.groupName, description: groupForm.description })
+    } else {
+      if (!groupForm.groupCode.trim()) return
+      const id = addCodeGroup({
+        groupCode: groupForm.groupCode.toUpperCase(),
+        groupName: groupForm.groupName,
+        description: groupForm.description,
+        isSystem: false,
+      })
+      setSelectedGroupId(id)
+    }
+    setShowGroupForm(false)
+  }
+
+  const handleDeleteGroup = (g: CodeGroup) => {
+    if (g.isSystem) return
+    if (confirm(`'${g.groupName}' 코드 그룹을 삭제하시겠습니까?\n하위 코드도 모두 삭제됩니다.`)) {
+      deleteCodeGroup(g.id)
+      setSelectedGroupId(codeGroups.find((x) => x.id !== g.id)?.id ?? null)
+    }
+  }
+
+  // ── Item handlers ───────────────────────────
+  const openAddItem = () => {
+    const nextOrder = (selectedGroup?.items.length ?? 0) + 1
+    const nextCode = String(nextOrder).padStart(2, '0')
+    setItemForm({ code: nextCode, label: '', order: String(nextOrder) })
+    setEditingItemId(null)
+    setShowItemForm(true)
+  }
+
+  const openEditItem = (item: CodeGroup['items'][0]) => {
+    setItemForm({ code: item.code, label: item.label, order: String(item.order) })
+    setEditingItemId(item.id)
+    setShowItemForm(true)
+  }
+
+  const saveItem = () => {
+    if (!selectedGroupId || !itemForm.label.trim()) return
+    const order = parseInt(itemForm.order) || 1
+    if (editingItemId) {
+      updateCodeItem(selectedGroupId, editingItemId, {
+        code: itemForm.code, label: itemForm.label, order,
+      })
+    } else {
+      addCodeItem(selectedGroupId, { code: itemForm.code, label: itemForm.label, order, isActive: true })
+    }
+    setShowItemForm(false)
+  }
+
+  const handleDeleteItem = (itemId: string, label: string) => {
+    if (!selectedGroupId) return
+    if (confirm(`'${label}' 코드를 삭제하시겠습니까?`)) deleteCodeItem(selectedGroupId, itemId)
+  }
+
+  const toggleItemActive = (itemId: string, current: boolean) => {
+    if (!selectedGroupId) return
+    updateCodeItem(selectedGroupId, itemId, { isActive: !current })
+  }
+
+  const moveItem = (itemId: string, dir: -1 | 1) => {
+    if (!selectedGroup) return
+    const items = [...selectedGroup.items].sort((a, b) => a.order - b.order)
+    const idx = items.findIndex((i) => i.id === itemId)
+    if (idx < 0) return
+    const swapIdx = idx + dir
+    if (swapIdx < 0 || swapIdx >= items.length) return
+    const reordered = items.map((item, i) => {
+      if (i === idx) return { ...item, order: items[swapIdx].order }
+      if (i === swapIdx) return { ...item, order: items[idx].order }
+      return item
+    })
+    reordered.forEach((item) => updateCodeItem(selectedGroup.id, item.id, { order: item.order }))
+  }
+
+  const sortedItems = selectedGroup
+    ? [...selectedGroup.items].sort((a, b) => a.order - b.order)
+    : []
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold text-gray-800">사용자 코드 관리</h3>
+        <button onClick={openAddGroup}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">
+          <Plus size={14} /> 그룹 추가
+        </button>
+      </div>
+
+      <div className="flex gap-4 min-h-[420px]">
+        {/* 좌측: 코드 그룹 목록 */}
+        <div className="w-44 flex-shrink-0 border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
+            <span className="text-xs font-semibold text-gray-500 uppercase">코드 그룹</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {codeGroups.map((g) => (
+              <div
+                key={g.id}
+                onClick={() => { setSelectedGroupId(g.id); setShowItemForm(false) }}
+                className={`flex items-center justify-between px-3 py-2.5 cursor-pointer transition-colors group ${
+                  selectedGroupId === g.id ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-50'
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className={`text-sm font-medium truncate ${selectedGroupId === g.id ? 'text-blue-700' : 'text-gray-700'}`}>
+                    {g.groupName}
+                  </div>
+                  <div className="text-xs text-gray-400 font-mono">{g.groupCode}</div>
+                </div>
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1 flex-shrink-0">
+                  <button onClick={(e) => { e.stopPropagation(); openEditGroup(g) }}
+                    className="p-1 hover:bg-blue-100 rounded text-gray-400 hover:text-blue-600">
+                    <Edit2 size={11} />
+                  </button>
+                  {!g.isSystem && (
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g) }}
+                      className="p-1 hover:bg-red-100 rounded text-gray-400 hover:text-red-500">
+                      <Trash2 size={11} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 우측: 코드 아이템 */}
+        <div className="flex-1 border border-gray-200 rounded-xl overflow-hidden flex flex-col">
+          {selectedGroup ? (
+            <>
+              <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <span className="text-sm font-semibold text-gray-700">{selectedGroup.groupName}</span>
+                  {selectedGroup.description && (
+                    <span className="ml-2 text-xs text-gray-400">{selectedGroup.description}</span>
+                  )}
+                  {selectedGroup.isSystem && (
+                    <span className="ml-2 text-xs bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded font-medium">시스템</span>
+                  )}
+                </div>
+                <button onClick={openAddItem}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-gray-900 text-white rounded-lg hover:bg-gray-700">
+                  <Plus size={12} /> 코드 추가
+                </button>
+              </div>
+
+              {/* 아이템 폼 (인라인) */}
+              {showItemForm && (
+                <div className="px-4 py-3 bg-blue-50/60 border-b border-blue-100 flex items-end gap-2">
+                  <div className="flex-shrink-0 w-20">
+                    <label className="block text-xs text-gray-500 mb-1">코드값</label>
+                    <input value={itemForm.code} onChange={(e) => setItemForm((f) => ({ ...f, code: e.target.value }))}
+                      placeholder="01"
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400 font-mono" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">표시명 *</label>
+                    <input value={itemForm.label} onChange={(e) => setItemForm((f) => ({ ...f, label: e.target.value }))}
+                      placeholder="코드명 입력"
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                  <div className="flex-shrink-0 w-16">
+                    <label className="block text-xs text-gray-500 mb-1">순서</label>
+                    <input type="number" value={itemForm.order} onChange={(e) => setItemForm((f) => ({ ...f, order: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                  <button onClick={saveItem}
+                    className="flex-shrink-0 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 flex items-center gap-1">
+                    <Check size={13} /> 저장
+                  </button>
+                  <button onClick={() => setShowItemForm(false)}
+                    className="flex-shrink-0 px-3 py-1.5 border border-gray-300 text-sm rounded-lg hover:bg-gray-50">
+                    취소
+                  </button>
+                </div>
+              )}
+
+              <table className="w-full flex-1">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="w-8 px-2 py-2"></th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">코드</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">표시명</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">순서</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">사용</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">관리</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sortedItems.length === 0 ? (
+                    <tr><td colSpan={6} className="text-center py-8 text-sm text-gray-400">코드를 추가하세요</td></tr>
+                  ) : sortedItems.map((item, idx) => (
+                    <tr key={item.id} className={`transition-colors ${item.isActive ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60'}`}>
+                      <td className="px-2 py-2">
+                        <div className="flex flex-col gap-0.5">
+                          <button onClick={() => moveItem(item.id, -1)} disabled={idx === 0}
+                            className="p-0.5 hover:bg-gray-200 rounded disabled:opacity-20 text-gray-400">
+                            <ChevronUp size={12} />
+                          </button>
+                          <button onClick={() => moveItem(item.id, 1)} disabled={idx === sortedItems.length - 1}
+                            className="p-0.5 hover:bg-gray-200 rounded disabled:opacity-20 text-gray-400">
+                            <ChevronDown size={12} />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-sm font-mono text-gray-500">{item.code}</td>
+                      <td className="px-3 py-2.5 text-sm font-medium text-gray-800">{item.label}</td>
+                      <td className="px-3 py-2.5 text-center text-sm text-gray-400">{item.order}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <button onClick={() => toggleItemActive(item.id, item.isActive)}
+                          className={`w-9 h-5 rounded-full transition-colors relative ${item.isActive ? 'bg-green-500' : 'bg-gray-300'}`}>
+                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${item.isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => openEditItem(item)}
+                            className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors">
+                            <Edit2 size={13} />
+                          </button>
+                          <button onClick={() => handleDeleteItem(item.id, item.label)}
+                            className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+              좌측에서 코드 그룹을 선택하세요
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 그룹 추가/수정 모달 */}
+      {showGroupForm && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-900">{editingGroupId ? '코드 그룹 수정' : '코드 그룹 추가'}</h2>
+              <button onClick={() => setShowGroupForm(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400"><X size={15} /></button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              {!editingGroupId && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">그룹 코드 *</label>
+                  <input value={groupForm.groupCode}
+                    onChange={(e) => setGroupForm((f) => ({ ...f, groupCode: e.target.value.toUpperCase() }))}
+                    placeholder="예: MY_CODE"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 font-mono uppercase" />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">그룹명 *</label>
+                <input value={groupForm.groupName}
+                  onChange={(e) => setGroupForm((f) => ({ ...f, groupName: e.target.value }))}
+                  placeholder="예: 프로젝트 구분"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">설명</label>
+                <input value={groupForm.description}
+                  onChange={(e) => setGroupForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="코드 그룹 설명"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <button onClick={() => setShowGroupForm(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100">취소</button>
+              <button onClick={saveGroup} className="px-4 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-medium">
+                {editingGroupId ? '수정 완료' : '추가'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export const Settings: React.FC = () => {
   const { tasks, projects } = useTaskStore()
   const [activeSection, setActiveSection] = useState('users')
 
   const sections = [
     { id: 'users', label: '사용자 관리', icon: <Users size={16} /> },
+    { id: 'codes', label: '코드 관리', icon: <ListTree size={16} /> },
     { id: 'profile', label: '내 프로필', icon: <User size={16} /> },
     { id: 'notifications', label: '알림', icon: <Bell size={16} /> },
     { id: 'appearance', label: '외관', icon: <Palette size={16} /> },
@@ -498,6 +829,8 @@ export const Settings: React.FC = () => {
     switch (activeSection) {
       case 'users':
         return <UserManagement />
+      case 'codes':
+        return <CodeManagement />
       case 'profile':
         return (
           <div className="space-y-6">
