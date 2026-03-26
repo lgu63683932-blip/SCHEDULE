@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Send, Paperclip, X, FileIcon } from 'lucide-react'
+import { Save, Send, Paperclip, X, FileIcon, Plus } from 'lucide-react'
 import { useDocumentStore } from '../../../store/documentStore'
 import { useTaskStore } from '../../../store/taskStore'
 import { useCodeStore } from '../../../store/codeStore'
+import { useApprovalLineStore } from '../../../store/approvalLineStore'
 import { ApprovalRequestDoc, AttachmentMeta } from '../../../types/document'
 import { sampleUsers } from '../../../data/sampleData'
 
@@ -42,6 +43,7 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
   const { addDocument, updateDocument, getDocument, currentUserId } = useDocumentStore()
   const { users } = useTaskStore()
   const { getActiveItems } = useCodeStore()
+  const { templates, getDefault } = useApprovalLineStore()
   const retentionItems = getActiveItems('RETENTION')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -63,10 +65,27 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
   const [expectedEffect, setExpectedEffect] = useState(existing?.content?.expectedEffect || '')
   const [budget, setBudget] = useState(existing?.content?.budget || '')
 
-  // 결재선
-  const [approvers, setApprovers] = useState(
-    existing?.approvalSteps.map((s) => ({ userId: s.userId, role: s.role })) || DEFAULT_STEPS(users)
-  )
+  // 결재선 초기값: 기존 문서 > 기본 템플릿 > 하드코딩 기본값
+  const defaultSteps = () => {
+    if (existing) return existing.approvalSteps.map((s) => ({ userId: s.userId, role: s.role }))
+    const dflt = getDefault()
+    if (dflt) return dflt.steps.map((s) => ({ ...s }))
+    return DEFAULT_STEPS(users)
+  }
+  const [approvers, setApprovers] = useState(defaultSteps)
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
+
+  const applyTemplate = (tplId: string) => {
+    const tpl = templates.find((t) => t.id === tplId)
+    if (tpl) setApprovers(tpl.steps.map((s) => ({ ...s })))
+    setSelectedTemplateId(tplId)
+  }
+
+  const addApprover = () => setApprovers((prev) => [...prev, { userId: users[0]?.id || 'user1', role: '검토자' }])
+  const removeApprover = (i: number) => setApprovers((prev) => prev.filter((_, idx) => idx !== i))
+  const updateApprover = (i: number, field: 'userId' | 'role', value: string) => {
+    setApprovers((prev) => prev.map((a, idx) => idx === i ? { ...a, [field]: value } : a))
+  }
 
   // 첨부파일
   const [attachments, setAttachments] = useState<(AttachmentMeta & { _file?: File })[]>(
@@ -120,17 +139,39 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
     <div className="space-y-4">
       {/* 결재선 */}
       <div>
-        <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">결재선</label>
-        <div className="space-y-2">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs font-semibold text-gray-500 uppercase">결재선</label>
+          <button type="button" onClick={addApprover}
+            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
+            <Plus size={12} /> 단계 추가
+          </button>
+        </div>
+        {/* 템플릿 선택 */}
+        {templates.length > 0 && (
+          <select value={selectedTemplateId} onChange={(e) => applyTemplate(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-gray-50 mb-2">
+            <option value="">── 저장된 결재선 불러오기 ──</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}{t.isDefault ? ' ★' : ''}</option>
+            ))}
+          </select>
+        )}
+        <div className="space-y-1.5">
           {approvers.map((approver, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 w-14 flex-shrink-0">{approver.role}</span>
-              <select value={approver.userId} onChange={(e) => {
-                const updated = [...approvers]; updated[i] = { ...updated[i], userId: e.target.value }; setApprovers(updated)
-              }} disabled={i === 0}
+            <div key={i} className="flex items-center gap-1.5">
+              <input value={approver.role} onChange={(e) => updateApprover(i, 'role', e.target.value)}
+                className="w-16 border border-gray-300 rounded px-1.5 py-1.5 text-xs outline-none focus:border-blue-400 flex-shrink-0" />
+              <select value={approver.userId} onChange={(e) => updateApprover(i, 'userId', e.target.value)}
+                disabled={i === 0}
                 className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-400 min-w-0">
                 {users.map((u) => <option key={u.id} value={u.id}>{u.avatar} {u.name}</option>)}
               </select>
+              {approvers.length > 1 && i !== 0 && (
+                <button onClick={() => removeApprover(i)}
+                  className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded flex-shrink-0">
+                  <X size={12} />
+                </button>
+              )}
             </div>
           ))}
         </div>

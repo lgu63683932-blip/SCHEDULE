@@ -2,15 +2,18 @@ import React, { useState, useRef, useCallback } from 'react'
 import { Header } from '../components/layout/Header'
 import { useTaskStore } from '../store/taskStore'
 import { useCodeStore } from '../store/codeStore'
+import { useApprovalLineStore } from '../store/approvalLineStore'
 import {
   User, Bell, Palette, Database, Shield, ChevronRight,
   Users, Plus, Edit2, Trash2, X, Check, Eye, EyeOff, Search,
-  ListTree, ChevronDown, ChevronUp, KeyRound, Copy, CheckCheck
+  ListTree, ChevronDown, ChevronUp, KeyRound, Copy, CheckCheck,
+  GitBranch, Star
 } from 'lucide-react'
 import {
   UserStatus, USER_STATUS_LABELS, USER_STATUS_CODES, USER_STATUS_COLORS
 } from '../types'
 import { CodeGroup } from '../types/code'
+import { ApprovalLineStep } from '../types/approvalLine'
 
 const AVATAR_OPTIONS = ['👨‍💻', '👩‍💼', '👨‍🎨', '👩‍🔬', '👨‍💼', '👩‍💻', '👨‍🔬', '👩‍🎨', '🧑‍💼', '👤']
 const COLOR_OPTIONS = ['#2383e2', '#0f7b6c', '#cb912f', '#eb5757', '#9065b0', '#d9730d', '#448361', '#337ea9']
@@ -890,12 +893,175 @@ const CodeManagement: React.FC = () => {
   )
 }
 
+// ── 결재선 관리 ──
+const ApprovalLineManagement: React.FC = () => {
+  const { users } = useTaskStore()
+  const { templates, addTemplate, updateTemplate, deleteTemplate, setDefault } = useApprovalLineStore()
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [formName, setFormName] = useState('')
+  const [formSteps, setFormSteps] = useState<ApprovalLineStep[]>([
+    { userId: 'user1', role: '기안자' },
+    { userId: users[1]?.id || 'user2', role: '팀장' },
+  ])
+
+  const openNew = () => {
+    setEditingId(null)
+    setFormName('')
+    setFormSteps([
+      { userId: users[0]?.id || 'user1', role: '기안자' },
+      { userId: users[1]?.id || 'user2', role: '팀장' },
+    ])
+    setShowForm(true)
+  }
+
+  const openEdit = (id: string) => {
+    const tpl = templates.find((t) => t.id === id)
+    if (!tpl) return
+    setEditingId(id)
+    setFormName(tpl.name)
+    setFormSteps(tpl.steps.map((s) => ({ ...s })))
+    setShowForm(true)
+  }
+
+  const addStep = () => setFormSteps((prev) => [...prev, { userId: users[0]?.id || 'user1', role: '검토자' }])
+  const removeStep = (i: number) => setFormSteps((prev) => prev.filter((_, idx) => idx !== i))
+  const updateStep = (i: number, field: 'userId' | 'role', value: string) => {
+    setFormSteps((prev) => prev.map((s, idx) => idx === i ? { ...s, [field]: value } : s))
+  }
+
+  const saveForm = () => {
+    if (!formName.trim()) { alert('결재선 이름을 입력해주세요'); return }
+    if (formSteps.length < 1) { alert('결재 단계를 1개 이상 추가해주세요'); return }
+    if (editingId) updateTemplate(editingId, formName.trim(), formSteps)
+    else addTemplate(formName.trim(), formSteps)
+    setShowForm(false)
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-semibold text-gray-800">결재선 관리</h3>
+        <button onClick={openNew}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700">
+          <Plus size={14} /> 결재선 추가
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        {templates.map((tpl) => (
+          <div key={tpl.id} className="border border-gray-200 rounded-xl p-4 bg-white">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-gray-800 text-sm">{tpl.name}</span>
+                {tpl.isDefault && (
+                  <span className="flex items-center gap-0.5 px-2 py-0.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-full text-xs font-medium">
+                    <Star size={10} className="fill-yellow-500 text-yellow-500" /> 기본
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {!tpl.isDefault && (
+                  <button onClick={() => setDefault(tpl.id)}
+                    className="px-2 py-1 text-xs text-yellow-600 border border-yellow-200 rounded-lg hover:bg-yellow-50">
+                    기본으로 설정
+                  </button>
+                )}
+                <button onClick={() => openEdit(tpl.id)}
+                  className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={14} /></button>
+                <button onClick={() => { if (confirm('삭제하시겠습니까?')) deleteTemplate(tpl.id) }}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {tpl.steps.map((step, i) => {
+                const u = users.find((u) => u.id === step.userId)
+                return (
+                  <React.Fragment key={i}>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs">
+                      <span>{u?.avatar || '👤'}</span>
+                      <div>
+                        <div className="font-medium text-gray-700">{u?.name || step.userId}</div>
+                        <div className="text-gray-400">{step.role}</div>
+                      </div>
+                    </div>
+                    {i < tpl.steps.length - 1 && <span className="text-gray-300 text-xs">→</span>}
+                  </React.Fragment>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+        {templates.length === 0 && (
+          <div className="text-center py-10 text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl">
+            등록된 결재선이 없습니다
+          </div>
+        )}
+      </div>
+
+      {/* 결재선 폼 모달 */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl w-[480px] max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">{editingId ? '결재선 수정' : '결재선 추가'}</h3>
+              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-400"><X size={16} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">결재선 이름 *</label>
+                <input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="예: 기본 결재선"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase">결재 단계 ({formSteps.length}단계)</label>
+                  <button onClick={addStep} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
+                    <Plus size={12} /> 단계 추가
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {formSteps.map((step, i) => (
+                    <div key={i} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <span className="text-xs text-gray-400 w-5 text-center font-medium">{i + 1}</span>
+                      <input value={step.role} onChange={(e) => updateStep(i, 'role', e.target.value)}
+                        placeholder="역할 (예: 팀장)"
+                        className="w-24 border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-white" />
+                      <select value={step.userId} onChange={(e) => updateStep(i, 'userId', e.target.value)}
+                        className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-white">
+                        {users.map((u) => <option key={u.id} value={u.id}>{u.avatar} {u.name} ({u.department})</option>)}
+                      </select>
+                      {formSteps.length > 1 && (
+                        <button onClick={() => removeStep(i)} className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded">
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100">취소</button>
+              <button onClick={saveForm} className="px-4 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-medium">
+                {editingId ? '수정 완료' : '추가'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export const Settings: React.FC = () => {
   const { tasks, projects } = useTaskStore()
   const [activeSection, setActiveSection] = useState('users')
 
   const sections = [
     { id: 'users', label: '사용자 관리', icon: <Users size={16} /> },
+    { id: 'approval-lines', label: '결재선 관리', icon: <GitBranch size={16} /> },
     { id: 'codes', label: '코드 관리', icon: <ListTree size={16} /> },
     { id: 'profile', label: '내 프로필', icon: <User size={16} /> },
     { id: 'notifications', label: '알림', icon: <Bell size={16} /> },
@@ -908,6 +1074,8 @@ export const Settings: React.FC = () => {
     switch (activeSection) {
       case 'users':
         return <UserManagement />
+      case 'approval-lines':
+        return <ApprovalLineManagement />
       case 'codes':
         return <CodeManagement />
       case 'profile':
