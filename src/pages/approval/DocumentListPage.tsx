@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, X, FileText } from 'lucide-react'
+import { Plus, X, FileText, Save, Send } from 'lucide-react'
 import { useDocumentStore } from '../../store/documentStore'
 import { useTaskStore } from '../../store/taskStore'
 import {
@@ -58,6 +58,7 @@ export const DocumentListPage: React.FC<Props> = ({ type }) => {
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | 'all'>('all')
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId] = useState<string | undefined>(undefined)
+  const saveRef = useRef<() => void>(() => {})
 
   const typeLabel = DOCUMENT_TYPE_LABELS[type]
   const typeIcon = DOCUMENT_TYPE_ICONS[type]
@@ -75,7 +76,7 @@ export const DocumentListPage: React.FC<Props> = ({ type }) => {
   const getDrafter = (drafterId: string) => users.find((u) => u.id === drafterId)
 
   const renderForm = () => {
-    const props = { editId, onCancel: closeModal, onSaved: handleSaved, isModal: true }
+    const props = { editId, onCancel: closeModal, onSaved: handleSaved, isModal: true, onRegisterSave: (fn: () => void) => { saveRef.current = fn } }
     if (type === 'approval_request') return <ApprovalRequestFormContent {...props} />
     if (type === 'business_trip') return <BusinessTripFormContent {...props} />
     return <ExpenseFormContent {...props} />
@@ -218,10 +219,18 @@ export const DocumentListPage: React.FC<Props> = ({ type }) => {
                 </h2>
                 <span className="text-xs text-gray-400 ml-1">· 드래그하여 이동</span>
               </div>
-              <button onClick={closeModal}
-                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors cursor-pointer">
-                <X size={16} />
-              </button>
+              <div className="flex items-center gap-2 cursor-default" onMouseDown={(e) => e.stopPropagation()}>
+                <button onClick={closeModal} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100">취소</button>
+                <button onClick={() => saveRef.current()} className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                  <Save size={14} /> 임시저장
+                </button>
+                <button onClick={() => saveRef.current()} className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700">
+                  <Send size={14} /> 저장
+                </button>
+                <button onClick={closeModal} className="ml-1 p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
             </div>
             {/* 모달 바디 — 스크롤 */}
             <div className="flex-1 overflow-y-auto px-6 py-5">

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Save, Send, Paperclip, X, FileIcon } from 'lucide-react'
 import { useDocumentStore } from '../../../store/documentStore'
@@ -23,6 +23,7 @@ interface Props {
   onCancel?: () => void
   onSaved?: (id: string) => void
   isModal?: boolean
+  onRegisterSave?: (fn: () => void) => void
 }
 
 // ── 문서 헤더 테이블 셀 ──
@@ -35,7 +36,7 @@ const DocHeaderCell: React.FC<{ label: string; children: React.ReactNode }> = ({
   </td>
 )
 
-export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, onSaved, isModal = false }) => {
+export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, onSaved, isModal = false, onRegisterSave }) => {
   const navigate = useNavigate()
   const { addDocument, updateDocument, getDocument, currentUserId } = useDocumentStore()
   const { users } = useTaskStore()
@@ -110,6 +111,8 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
     if (onSaved) onSaved(savedId)
     else navigate(`/approval/document/${savedId}`)
   }
+
+  useEffect(() => { onRegisterSave?.(handleSave) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 결재선 + 첨부파일 패널 (우측 공통) ──
   const RightPanel = () => (
@@ -267,16 +270,18 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
         <LeftContent />
       )}
 
-      {/* 버튼 */}
-      <div className="flex gap-3 justify-end pt-2 border-t border-gray-100">
-        <button onClick={handleCancel} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100">취소</button>
-        <button onClick={handleSave} className="flex items-center gap-1.5 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
-          <Save size={14} /> 임시저장
-        </button>
-        <button onClick={handleSave} className="flex items-center gap-1.5 px-5 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700">
-          <Send size={14} /> 저장
-        </button>
-      </div>
+      {/* 버튼 — 모달 아닐 때만 하단에 표시 */}
+      {!isModal && (
+        <div className="flex gap-3 justify-end pt-2 border-t border-gray-100">
+          <button onClick={handleCancel} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100">취소</button>
+          <button onClick={handleSave} className="flex items-center gap-1.5 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+            <Save size={14} /> 임시저장
+          </button>
+          <button onClick={handleSave} className="flex items-center gap-1.5 px-5 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700">
+            <Send size={14} /> 저장
+          </button>
+        </div>
+      )}
     </div>
   )
 }
