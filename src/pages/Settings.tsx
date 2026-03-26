@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import { Header } from '../components/layout/Header'
 import { useTaskStore } from '../store/taskStore'
 import {
@@ -32,6 +32,32 @@ const emptyForm = (): UserFormData => ({
   email: '', userStatus: 'password_assigned', password: '', avatar: '👤', color: '#2383e2',
 })
 
+const useDraggable = () => {
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const dragging = useRef(false)
+  const startPos = useRef({ mx: 0, my: 0, px: 0, py: 0 })
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    dragging.current = true
+    startPos.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
+    e.preventDefault()
+  }, [pos])
+
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragging.current) return
+    setPos({
+      x: startPos.current.px + e.clientX - startPos.current.mx,
+      y: startPos.current.py + e.clientY - startPos.current.my,
+    })
+  }, [])
+
+  const onMouseUp = useCallback(() => { dragging.current = false }, [])
+
+  const reset = useCallback(() => setPos({ x: 0, y: 0 }), [])
+
+  return { pos, onMouseDown, onMouseMove, onMouseUp, reset }
+}
+
 const UserManagement: React.FC = () => {
   const { users, addUser, updateUser, deleteUser } = useTaskStore()
   const [search, setSearch] = useState('')
@@ -41,6 +67,7 @@ const UserManagement: React.FC = () => {
   const [form, setForm] = useState<UserFormData>(emptyForm())
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<Partial<UserFormData>>({})
+  const drag = useDraggable()
 
   const filtered = users.filter((u) => {
     const matchSearch = !search ||
@@ -55,6 +82,7 @@ const UserManagement: React.FC = () => {
     setEditingId(null)
     setErrors({})
     setShowPassword(false)
+    drag.reset()
     setShowModal(true)
   }
 
@@ -75,6 +103,7 @@ const UserManagement: React.FC = () => {
     setEditingId(id)
     setErrors({})
     setShowPassword(false)
+    drag.reset()
     setShowModal(true)
   }
 
@@ -213,11 +242,22 @@ const UserManagement: React.FC = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          onMouseMove={(e) => drag.onMouseMove(e.nativeEvent)}
+          onMouseUp={drag.onMouseUp}
+          onMouseLeave={drag.onMouseUp}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            style={{ transform: `translate(${drag.pos.x}px, ${drag.pos.y}px)`, cursor: 'default' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-gray-100 cursor-move select-none"
+              onMouseDown={drag.onMouseDown}
+            >
               <h2 className="text-base font-semibold text-gray-900">{editingId ? '사용자 정보 수정' : '사용자 등록'}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400">
+              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
