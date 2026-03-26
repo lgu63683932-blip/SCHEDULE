@@ -12,6 +12,13 @@ export interface ApprovalStep {
   order: number
 }
 
+export interface AttachmentMeta {
+  id: string
+  name: string
+  size: number
+  fileType: string
+}
+
 export interface BaseDocument {
   id: string
   type: DocumentType
@@ -20,6 +27,7 @@ export interface BaseDocument {
   status: DocumentStatus
   drafterId: string
   approvalSteps: ApprovalStep[]
+  attachments?: AttachmentMeta[]
   createdAt: string
   updatedAt: string
   submittedAt?: string

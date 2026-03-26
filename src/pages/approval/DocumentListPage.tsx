@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, X, FileText } from 'lucide-react'
 import { useDocumentStore } from '../../store/documentStore'
@@ -22,6 +22,29 @@ const STATUS_TABS: { key: DocumentStatus | 'all'; label: string }[] = [
   { key: 'rejected', label: '반려' },
 ]
 
+// ── 드래그 훅 ──
+const useDraggable = () => {
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const dragging = useRef(false)
+  const start = useRef({ mx: 0, my: 0, px: 0, py: 0 })
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    dragging.current = true
+    start.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
+    e.preventDefault()
+  }, [pos])
+
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragging.current) return
+    setPos({ x: start.current.px + e.clientX - start.current.mx, y: start.current.py + e.clientY - start.current.my })
+  }, [])
+
+  const onMouseUp = useCallback(() => { dragging.current = false }, [])
+  const reset = useCallback(() => setPos({ x: 0, y: 0 }), [])
+
+  return { pos, onMouseDown, onMouseMove, onMouseUp, reset }
+}
+
 interface Props {
   type: DocumentType
 }
@@ -30,6 +53,7 @@ export const DocumentListPage: React.FC<Props> = ({ type }) => {
   const navigate = useNavigate()
   const { documents } = useDocumentStore()
   const { users } = useTaskStore()
+  const drag = useDraggable()
 
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | 'all'>('all')
   const [showModal, setShowModal] = useState(false)
@@ -43,16 +67,15 @@ export const DocumentListPage: React.FC<Props> = ({ type }) => {
     .filter((d) => statusFilter === 'all' || d.status === statusFilter)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
-  const openNew = () => { setEditId(undefined); setShowModal(true) }
-  const openEdit = (id: string) => { setEditId(id); setShowModal(true) }
+  const openNew = () => { setEditId(undefined); drag.reset(); setShowModal(true) }
+  const openEdit = (id: string) => { setEditId(id); drag.reset(); setShowModal(true) }
   const closeModal = () => setShowModal(false)
   const handleSaved = (id: string) => { setShowModal(false); navigate(`/approval/document/${id}`) }
 
-  const getDrafter = (drafterId: string) =>
-    users.find((u) => u.id === drafterId)
+  const getDrafter = (drafterId: string) => users.find((u) => u.id === drafterId)
 
   const renderForm = () => {
-    const props = { editId, onCancel: closeModal, onSaved: handleSaved }
+    const props = { editId, onCancel: closeModal, onSaved: handleSaved, isModal: true }
     if (type === 'approval_request') return <ApprovalRequestFormContent {...props} />
     if (type === 'business_trip') return <BusinessTripFormContent {...props} />
     return <ExpenseFormContent {...props} />
@@ -88,9 +111,7 @@ export const DocumentListPage: React.FC<Props> = ({ type }) => {
               return (
                 <button key={tab.key} onClick={() => setStatusFilter(tab.key)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    statusFilter === tab.key
-                      ? 'bg-gray-900 text-white'
-                      : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    statusFilter === tab.key ? 'bg-gray-900 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}>
                   {tab.label}
                   {count > 0 && (
@@ -144,9 +165,7 @@ export const DocumentListPage: React.FC<Props> = ({ type }) => {
                             <span className="text-sm">{drafter.avatar}</span>
                             <span className="text-sm text-gray-700">{drafter.name}</span>
                           </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                        )}
+                        ) : <span className="text-xs text-gray-400">-</span>}
                       </td>
                       <td className="px-5 py-3.5 text-center">
                         <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${DOCUMENT_STATUS_COLORS[doc.status]}`}>
@@ -159,9 +178,7 @@ export const DocumentListPage: React.FC<Props> = ({ type }) => {
                       <td className="px-5 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                         {doc.status === 'draft' && (
                           <button onClick={() => openEdit(doc.id)}
-                            className="text-xs text-blue-500 hover:text-blue-700 hover:underline">
-                            수정
-                          </button>
+                            className="text-xs text-blue-500 hover:text-blue-700 hover:underline">수정</button>
                         )}
                       </td>
                     </tr>
@@ -173,24 +190,41 @@ export const DocumentListPage: React.FC<Props> = ({ type }) => {
         </div>
       </div>
 
-      {/* 작성 모달 */}
+      {/* ── 작성 모달 (드래그 가능) ── */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-6 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-auto">
-            {/* 모달 헤더 */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+          onMouseMove={(e) => drag.onMouseMove(e.nativeEvent)}
+          onMouseUp={drag.onMouseUp}
+          onMouseLeave={drag.onMouseUp}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl flex flex-col"
+            style={{
+              width: 'min(1100px, 95vw)',
+              maxHeight: '92vh',
+              transform: `translate(${drag.pos.x}px, ${drag.pos.y}px)`,
+            }}
+          >
+            {/* 모달 헤더 — 드래그 핸들 */}
+            <div
+              className="flex items-center justify-between px-6 py-3.5 border-b border-gray-100 rounded-t-2xl cursor-move select-none flex-shrink-0"
+              onMouseDown={drag.onMouseDown}
+            >
               <div className="flex items-center gap-2">
                 <span className="text-xl">{typeIcon}</span>
                 <h2 className="text-base font-bold text-gray-900">
                   {editId ? `${typeLabel} 수정` : `${typeLabel} 작성`}
                 </h2>
+                <span className="text-xs text-gray-400 ml-1">· 드래그하여 이동</span>
               </div>
-              <button onClick={closeModal} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
+              <button onClick={closeModal}
+                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors cursor-pointer">
                 <X size={16} />
               </button>
             </div>
-            {/* 모달 바디 */}
-            <div className="px-6 py-5">
+            {/* 모달 바디 — 스크롤 */}
+            <div className="flex-1 overflow-y-auto px-6 py-5">
               {renderForm()}
             </div>
           </div>
