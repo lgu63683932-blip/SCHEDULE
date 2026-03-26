@@ -32,6 +32,17 @@ const emptyForm = (): UserFormData => ({
   email: '', userStatus: 'password_assigned', password: '', avatar: '👤', color: '#2383e2',
 })
 
+const generateUserId = (existingUsers: { userId: string }[]): string => {
+  const now = new Date()
+  const prefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`
+  const existing = existingUsers
+    .map((u) => u.userId)
+    .filter((id) => id.startsWith(prefix) && /^\d{9}$/.test(id))
+    .map((id) => parseInt(id.slice(6), 10))
+  const next = existing.length > 0 ? Math.max(...existing) + 1 : 1
+  return `${prefix}${String(next).padStart(3, '0')}`
+}
+
 const useDraggable = () => {
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const dragging = useRef(false)
@@ -107,11 +118,24 @@ const UserManagement: React.FC = () => {
     setShowModal(true)
   }
 
+  const handleAutoGenId = () => {
+    const generated = generateUserId(users)
+    setForm((f) => ({ ...f, userId: generated }))
+    if (errors.userId) setErrors((e) => ({ ...e, userId: undefined }))
+  }
+
   const validate = (): boolean => {
     const e: Partial<UserFormData> = {}
-    if (!form.userId.trim()) e.userId = '아이디를 입력하세요'
-    else if (!/^[a-zA-Z0-9_]+$/.test(form.userId)) e.userId = '영문, 숫자, _만 사용 가능합니다'
-    else if (!editingId && users.some((u) => u.userId === form.userId)) e.userId = '이미 사용 중인 아이디입니다'
+    // 아이디가 비어있으면 자동채번
+    let finalUserId = form.userId.trim()
+    if (!finalUserId) {
+      finalUserId = generateUserId(users)
+      setForm((f) => ({ ...f, userId: finalUserId }))
+    } else if (!/^[a-zA-Z0-9_]+$/.test(finalUserId)) {
+      e.userId = '영문, 숫자, _만 사용 가능합니다'
+    } else if (!editingId && users.some((u) => u.userId === finalUserId)) {
+      e.userId = '이미 사용 중인 아이디입니다'
+    }
     if (!form.name.trim()) e.name = '성명을 입력하세요'
     if (!form.password.trim()) e.password = '비밀번호를 입력하세요'
     else if (form.password.length < 4) e.password = '4자 이상 입력하세요'
@@ -301,10 +325,28 @@ const UserManagement: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 {/* 아이디 */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">아이디 *</label>
-                  <input value={form.userId} onChange={(e) => set('userId', e.target.value)}
-                    placeholder="영문/숫자" disabled={!!editingId}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-400 ${errors.userId ? 'border-red-400' : 'border-gray-300'}`} />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">아이디</label>
+                    {!editingId && (
+                      <button
+                        type="button"
+                        onClick={handleAutoGenId}
+                        className="text-xs text-blue-500 hover:text-blue-700 hover:underline font-medium"
+                      >
+                        자동채번
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    value={form.userId}
+                    onChange={(e) => set('userId', e.target.value)}
+                    placeholder={editingId ? '' : generateUserId(users) + ' (자동)'}
+                    disabled={!!editingId}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-400 font-mono ${errors.userId ? 'border-red-400' : 'border-gray-300'}`}
+                  />
+                  {!editingId && !form.userId && (
+                    <p className="text-xs text-gray-400 mt-1">비워두면 자동으로 채번됩니다</p>
+                  )}
                   {errors.userId && <p className="text-xs text-red-500 mt-1">{errors.userId}</p>}
                 </div>
                 {/* 성명 */}
