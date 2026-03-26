@@ -5,7 +5,7 @@ import { useCodeStore } from '../store/codeStore'
 import {
   User, Bell, Palette, Database, Shield, ChevronRight,
   Users, Plus, Edit2, Trash2, X, Check, Eye, EyeOff, Search,
-  ListTree, ChevronDown, ChevronUp
+  ListTree, ChevronDown, ChevronUp, KeyRound, Copy, CheckCheck
 } from 'lucide-react'
 import {
   UserStatus, USER_STATUS_LABELS, USER_STATUS_CODES, USER_STATUS_COLORS
@@ -35,6 +35,11 @@ const emptyForm = (): UserFormData => ({
   email: '', joinDate: new Date().toISOString().split('T')[0],
   userStatus: 'password_assigned', isAdmin: false, password: '', avatar: '👤', color: '#2383e2',
 })
+
+const generateTempPassword = (): string => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
 
 const generateUserId = (existingUsers: { userId: string }[], joinDate?: string): string => {
   const base = joinDate ? new Date(joinDate) : new Date()
@@ -86,6 +91,24 @@ const UserManagement: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<Partial<UserFormData>>({})
   const drag = useDraggable()
+
+  // 비밀번호 초기화
+  const [resetResult, setResetResult] = useState<{ name: string; userId: string; tempPw: string } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const handleResetPassword = (id: string, name: string, userId: string) => {
+    if (!confirm(`'${name}' 사용자의 비밀번호를 초기화하시겠습니까?`)) return
+    const tempPw = generateTempPassword()
+    updateUser(id, { password: tempPw, userStatus: 'password_assigned' })
+    setResetResult({ name, userId, tempPw })
+    setCopied(false)
+  }
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const filtered = users.filter((u) => {
     const matchSearch = !search ||
@@ -268,10 +291,17 @@ const UserManagement: React.FC = () => {
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-1">
                     <button onClick={() => openEdit(user.id)}
+                      title="수정"
                       className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors">
                       <Edit2 size={14} />
                     </button>
+                    <button onClick={() => handleResetPassword(user.id, user.name, user.userId)}
+                      title="비밀번호 초기화"
+                      className="p-1.5 hover:bg-yellow-50 rounded-lg text-gray-400 hover:text-yellow-600 transition-colors">
+                      <KeyRound size={14} />
+                    </button>
                     <button onClick={() => handleDelete(user.id, user.name)}
+                      title="삭제"
                       className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
                       <Trash2 size={14} />
                     </button>
@@ -282,6 +312,55 @@ const UserManagement: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* 비밀번호 초기화 결과 모달 */}
+      {resetResult && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <KeyRound size={15} className="text-yellow-500" /> 비밀번호 초기화 완료
+              </h2>
+              <button onClick={() => setResetResult(null)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400">
+                <X size={15} />
+              </button>
+            </div>
+            <div className="px-5 py-5 space-y-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-700">
+                상태가 <strong>[03] 비밀번호부여</strong>로 변경되었습니다.<br />
+                아래 임시 비밀번호를 사용자에게 전달하세요.
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>사용자</span>
+                  <span className="font-medium text-gray-700">{resetResult.name} ({resetResult.userId})</span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-gray-500">
+                  <span>임시 비밀번호</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-base font-bold text-gray-900 tracking-widest bg-gray-100 px-3 py-1 rounded-lg">
+                      {resetResult.tempPw}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(resetResult.tempPw)}
+                      className={`p-1.5 rounded-lg transition-colors ${copied ? 'bg-green-100 text-green-600' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}`}
+                      title="클립보드에 복사"
+                    >
+                      {copied ? <CheckCheck size={15} /> : <Copy size={15} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end px-5 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <button onClick={() => setResetResult(null)}
+                className="px-4 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-medium">
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
