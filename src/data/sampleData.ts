@@ -1,10 +1,10 @@
 import { Task, Project, User } from '../types'
 
 export const sampleUsers: User[] = [
-  { id: 'user1', userId: 'admin', name: '김민준', department: '개발팀', position: '팀장', email: 'minjun@company.com', userStatus: 'active', password: '1234', avatar: '👨‍💻', color: '#2383e2', createdAt: '2025-01-01T00:00:00.000Z' },
-  { id: 'user2', userId: 'seoyeon', name: '이서연', department: '개발팀', position: '선임', email: 'seoyeon@company.com', userStatus: 'active', password: '1234', avatar: '👩‍💼', color: '#0f7b6c', createdAt: '2025-01-15T00:00:00.000Z' },
-  { id: 'user3', userId: 'jiho', name: '박지호', department: '디자인팀', position: '부서장', email: 'jiho@company.com', userStatus: 'active', password: '1234', avatar: '👨‍🎨', color: '#cb912f', createdAt: '2025-02-01T00:00:00.000Z' },
-  { id: 'user4', userId: 'yuna', name: '최유나', department: '마케팅팀', position: '사원', email: 'yuna@company.com', userStatus: 'inactive', password: '1234', avatar: '👩‍🔬', color: '#eb5757', createdAt: '2025-03-01T00:00:00.000Z' },
+  { id: 'user1', userId: 'admin', name: '김민준', department: '개발팀', position: '팀장', email: 'minjun@company.com', joinDate: '2024-01-02', userStatus: 'active', password: '1234', avatar: '👨‍💻', color: '#2383e2', createdAt: '2025-01-01T00:00:00.000Z' },
+  { id: 'user2', userId: 'seoyeon', name: '이서연', department: '개발팀', position: '선임', email: 'seoyeon@company.com', joinDate: '2024-03-04', userStatus: 'active', password: '1234', avatar: '👩‍💼', color: '#0f7b6c', createdAt: '2025-01-15T00:00:00.000Z' },
+  { id: 'user3', userId: 'jiho', name: '박지호', department: '디자인팀', position: '부서장', email: 'jiho@company.com', joinDate: '2023-07-01', userStatus: 'active', password: '1234', avatar: '👨‍🎨', color: '#cb912f', createdAt: '2025-02-01T00:00:00.000Z' },
+  { id: 'user4', userId: 'yuna', name: '최유나', department: '마케팅팀', position: '사원', email: 'yuna@company.com', joinDate: '2025-03-10', userStatus: 'inactive', password: '1234', avatar: '👩‍🔬', color: '#eb5757', createdAt: '2025-03-01T00:00:00.000Z' },
 ]
 
 export const sampleProjects: Project[] = [

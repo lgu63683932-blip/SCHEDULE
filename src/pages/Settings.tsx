@@ -21,6 +21,7 @@ interface UserFormData {
   department: string
   position: string
   email: string
+  joinDate: string
   userStatus: UserStatus
   password: string
   avatar: string
@@ -29,12 +30,13 @@ interface UserFormData {
 
 const emptyForm = (): UserFormData => ({
   userId: '', name: '', department: '개발팀', position: '사원',
-  email: '', userStatus: 'password_assigned', password: '', avatar: '👤', color: '#2383e2',
+  email: '', joinDate: new Date().toISOString().split('T')[0],
+  userStatus: 'password_assigned', password: '', avatar: '👤', color: '#2383e2',
 })
 
-const generateUserId = (existingUsers: { userId: string }[]): string => {
-  const now = new Date()
-  const prefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`
+const generateUserId = (existingUsers: { userId: string }[], joinDate?: string): string => {
+  const base = joinDate ? new Date(joinDate) : new Date()
+  const prefix = `${base.getFullYear()}${String(base.getMonth() + 1).padStart(2, '0')}`
   const existing = existingUsers
     .map((u) => u.userId)
     .filter((id) => id.startsWith(prefix) && /^\d{9}$/.test(id))
@@ -106,6 +108,7 @@ const UserManagement: React.FC = () => {
       department: user.department,
       position: user.position || '사원',
       email: user.email || '',
+      joinDate: user.joinDate || '',
       userStatus: user.userStatus,
       password: user.password || '',
       avatar: user.avatar,
@@ -119,7 +122,7 @@ const UserManagement: React.FC = () => {
   }
 
   const handleAutoGenId = () => {
-    const generated = generateUserId(users)
+    const generated = generateUserId(users, form.joinDate)
     setForm((f) => ({ ...f, userId: generated }))
     if (errors.userId) setErrors((e) => ({ ...e, userId: undefined }))
   }
@@ -129,7 +132,7 @@ const UserManagement: React.FC = () => {
     // 아이디가 비어있으면 자동채번
     let finalUserId = form.userId.trim()
     if (!finalUserId) {
-      finalUserId = generateUserId(users)
+      finalUserId = generateUserId(users, form.joinDate)
       setForm((f) => ({ ...f, userId: finalUserId }))
     } else if (!/^[a-zA-Z0-9_]+$/.test(finalUserId)) {
       e.userId = '영문, 숫자, _만 사용 가능합니다'
@@ -148,14 +151,14 @@ const UserManagement: React.FC = () => {
     if (editingId) {
       updateUser(editingId, {
         userId: form.userId, name: form.name, department: form.department,
-        position: form.position, email: form.email, userStatus: form.userStatus,
-        password: form.password, avatar: form.avatar, color: form.color,
+        position: form.position, email: form.email, joinDate: form.joinDate || undefined,
+        userStatus: form.userStatus, password: form.password, avatar: form.avatar, color: form.color,
       })
     } else {
       addUser({
         userId: form.userId, name: form.name, department: form.department,
-        position: form.position, email: form.email, userStatus: form.userStatus,
-        password: form.password, avatar: form.avatar, color: form.color,
+        position: form.position, email: form.email, joinDate: form.joinDate || undefined,
+        userStatus: form.userStatus, password: form.password, avatar: form.avatar, color: form.color,
       })
     }
     setShowModal(false)
@@ -340,12 +343,12 @@ const UserManagement: React.FC = () => {
                   <input
                     value={form.userId}
                     onChange={(e) => set('userId', e.target.value)}
-                    placeholder={editingId ? '' : generateUserId(users) + ' (자동)'}
+                    placeholder={editingId ? '' : generateUserId(users, form.joinDate) + ' (자동)'}
                     disabled={!!editingId}
                     className={`w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-400 font-mono ${errors.userId ? 'border-red-400' : 'border-gray-300'}`}
                   />
                   {!editingId && !form.userId && (
-                    <p className="text-xs text-gray-400 mt-1">비워두면 자동으로 채번됩니다</p>
+                    <p className="text-xs text-gray-400 mt-1">비워두면 입사일 기준으로 자동 채번됩니다</p>
                   )}
                   {errors.userId && <p className="text-xs text-red-500 mt-1">{errors.userId}</p>}
                 </div>
@@ -375,12 +378,31 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* 이메일 */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">이메일</label>
-                <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)}
-                  placeholder="user@company.com"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400" />
+              {/* 이메일 + 입사일 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">이메일</label>
+                  <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)}
+                    placeholder="user@company.com"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">입사일</label>
+                  <input
+                    type="date"
+                    value={form.joinDate}
+                    onChange={(e) => {
+                      set('joinDate', e.target.value)
+                      // 아이디가 비어있으면 placeholder 갱신을 위해 state만 바꿈
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
+                  />
+                  {!editingId && form.joinDate && !form.userId && (
+                    <p className="text-xs text-blue-500 mt-1 font-mono">
+                      → {generateUserId(users, form.joinDate)}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* 비밀번호 */}

@@ -35,6 +35,7 @@ export interface User {
   department: string   // 부서
   position?: string    // 직위
   email?: string       // 이메일
+  joinDate?: string    // 입사일 (YYYY-MM-DD)
   userStatus: UserStatus // 상태코드
   password?: string    // 비밀번호
   avatar: string
