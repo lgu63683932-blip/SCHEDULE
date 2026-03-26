@@ -10,8 +10,12 @@ import {
   ChevronRight,
   Plus,
   Hash,
+  FileText,
+  ClipboardCheck,
+  FolderOpen,
 } from 'lucide-react'
 import { useTaskStore } from '../../store/taskStore'
+import { useDocumentStore } from '../../store/documentStore'
 import { generateId } from '../../utils/helpers'
 
 const PROJECT_COLORS = [
@@ -25,9 +29,12 @@ export const Sidebar: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { projects, addProject } = useTaskStore()
+  const { getPendingCount } = useDocumentStore()
   const [projectsOpen, setProjectsOpen] = useState(true)
+  const [approvalOpen, setApprovalOpen] = useState(true)
   const [addingProject, setAddingProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
+  const pendingCount = getPendingCount()
 
   const navItems = [
     { path: '/', label: '대시보드', icon: <LayoutDashboard size={16} /> },
@@ -83,6 +90,57 @@ export const Sidebar: React.FC = () => {
               {item.label}
             </Link>
           ))}
+        </div>
+
+        {/* Approval section */}
+        <div className="px-2 mt-3">
+          <div
+            className="flex items-center justify-between px-2.5 py-1 rounded-md cursor-pointer hover:bg-notion-hover group mb-1"
+            onClick={() => setApprovalOpen(!approvalOpen)}
+          >
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-notion-textSecondary uppercase tracking-wide">
+              {approvalOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              전자결재
+            </div>
+          </div>
+          {approvalOpen && (
+            <div className="space-y-0.5">
+              {[
+                { path: '/approval', label: '결재 홈', icon: <ClipboardCheck size={15} /> },
+                { path: '/approval/inbox', label: '결재함', icon: <Inbox size={15} />, badge: pendingCount },
+                { path: '/approval/my-documents', label: '내 문서함', icon: <FolderOpen size={15} /> },
+              ].map((item) => (
+                <Link key={item.path} to={item.path}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+                    location.pathname === item.path
+                      ? 'bg-notion-active text-notion-text font-medium'
+                      : 'text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text'
+                  }`}
+                >
+                  {item.icon}
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge ? (
+                    <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-4 text-center">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </Link>
+              ))}
+              <div className="pt-1 pb-0.5">
+                <div className="text-xs text-notion-textSecondary px-2.5 py-1 opacity-60">새 문서</div>
+                {[
+                  { path: '/approval/new/approval-request', label: '📋 품의서' },
+                  { path: '/approval/new/business-trip', label: '✈️ 출장보고서' },
+                  { path: '/approval/new/expense', label: '💰 지출결의서' },
+                ].map((item) => (
+                  <Link key={item.path} to={item.path}
+                    className="flex items-center gap-2 px-2.5 py-1 rounded-md text-xs transition-colors text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text">
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Projects section */}
