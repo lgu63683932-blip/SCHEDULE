@@ -121,6 +121,28 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
   const removeAttachment = (id: string) => setAttachments((prev) => prev.filter((a) => a.id !== id))
   const renameAttachment = (id: string, name: string) => setAttachments((prev) => prev.map((a) => a.id === id ? { ...a, name } : a))
 
+  const [manualName, setManualName] = useState('')
+  const [showManualInput, setShowManualInput] = useState(false)
+  const manualInputRef = useRef<HTMLInputElement>(null)
+
+  const addManualAttachment = () => {
+    const name = manualName.trim()
+    if (!name) return
+    setAttachments((prev) => [...prev, {
+      id: `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name,
+      size: 0,
+      fileType: 'manual',
+    }])
+    setManualName('')
+    setShowManualInput(false)
+  }
+
+  const openManualInput = () => {
+    setShowManualInput(true)
+    setTimeout(() => manualInputRef.current?.focus(), 0)
+  }
+
   const handleSave = () => {
     if (!title.trim()) { alert('제목을 입력해주세요'); return }
     const allSteps = [drafterStep, ...approvers]
@@ -202,13 +224,41 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="text-xs font-semibold text-gray-500 uppercase">첨부파일</label>
-          <button type="button" onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
-            <Paperclip size={12} /> 파일 추가
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={openManualInput}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 font-medium">
+              <Plus size={12} /> 직접 입력
+            </button>
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
+              <Paperclip size={12} /> 파일 추가
+            </button>
+          </div>
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
         </div>
-        {attachments.length === 0 ? (
+
+        {/* 직접 입력 행 */}
+        {showManualInput && (
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <FileIcon size={14} className="text-gray-300 flex-shrink-0" />
+            <input
+              ref={manualInputRef}
+              value={manualName}
+              onChange={(e) => setManualName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') addManualAttachment(); if (e.key === 'Escape') { setShowManualInput(false); setManualName('') } }}
+              placeholder="파일명 입력 후 Enter"
+              className="flex-1 border border-blue-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-400"
+            />
+            <button onClick={addManualAttachment}
+              className="px-2 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">확인</button>
+            <button onClick={() => { setShowManualInput(false); setManualName('') }}
+              className="p-1.5 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100">
+              <X size={12} />
+            </button>
+          </div>
+        )}
+
+        {attachments.length === 0 && !showManualInput ? (
           <div onClick={() => fileInputRef.current?.click()}
             className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors">
             <Paperclip size={20} className="mx-auto text-gray-300 mb-1" />
@@ -218,14 +268,16 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
           <div className="space-y-1.5">
             {attachments.map((att) => (
               <div key={att.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200 group">
-                <FileIcon size={14} className="text-blue-400 flex-shrink-0" />
+                <FileIcon size={14} className={att.fileType === 'manual' ? 'text-gray-300 flex-shrink-0' : 'text-blue-400 flex-shrink-0'} />
                 <div className="flex-1 min-w-0">
                   <input
                     value={att.name}
                     onChange={(e) => renameAttachment(att.id, e.target.value)}
                     className="w-full text-xs font-medium text-gray-700 bg-transparent outline-none border-b border-transparent focus:border-blue-400 focus:bg-white focus:px-1 rounded-sm transition-all"
                   />
-                  <div className="text-xs text-gray-400">{formatBytes(att.size)}</div>
+                  <div className="text-xs text-gray-400">
+                    {att.fileType === 'manual' ? '직접 입력' : formatBytes(att.size)}
+                  </div>
                 </div>
                 <button onClick={() => removeAttachment(att.id)}
                   className="p-0.5 hover:bg-red-100 rounded text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
@@ -233,10 +285,16 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
                 </button>
               </div>
             ))}
-            <button onClick={() => fileInputRef.current?.click()}
-              className="w-full py-1.5 text-xs text-gray-400 hover:text-blue-500 border border-dashed border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
-              + 파일 추가
-            </button>
+            <div className="flex gap-1.5">
+              <button onClick={openManualInput}
+                className="flex-1 py-1.5 text-xs text-gray-400 hover:text-gray-600 border border-dashed border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                + 직접 입력
+              </button>
+              <button onClick={() => fileInputRef.current?.click()}
+                className="flex-1 py-1.5 text-xs text-gray-400 hover:text-blue-500 border border-dashed border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                + 파일 추가
+              </button>
+            </div>
           </div>
         )}
       </div>
