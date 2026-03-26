@@ -1,10 +1,10 @@
 import { Task, Project, User } from '../types'
 
 export const sampleUsers: User[] = [
-  { id: 'user1', name: '김민준', avatar: '👨‍💻', color: '#2383e2' },
-  { id: 'user2', name: '이서연', avatar: '👩‍💼', color: '#0f7b6c' },
-  { id: 'user3', name: '박지호', avatar: '👨‍🎨', color: '#cb912f' },
-  { id: 'user4', name: '최유나', avatar: '👩‍🔬', color: '#eb5757' },
+  { id: 'user1', userId: 'admin', name: '김민준', department: '개발팀', position: '팀장', email: 'minjun@company.com', userStatus: 'active', password: '1234', avatar: '👨‍💻', color: '#2383e2', createdAt: '2025-01-01T00:00:00.000Z' },
+  { id: 'user2', userId: 'seoyeon', name: '이서연', department: '개발팀', position: '선임', email: 'seoyeon@company.com', userStatus: 'active', password: '1234', avatar: '👩‍💼', color: '#0f7b6c', createdAt: '2025-01-15T00:00:00.000Z' },
+  { id: 'user3', userId: 'jiho', name: '박지호', department: '디자인팀', position: '부서장', email: 'jiho@company.com', userStatus: 'active', password: '1234', avatar: '👨‍🎨', color: '#cb912f', createdAt: '2025-02-01T00:00:00.000Z' },
+  { id: 'user4', userId: 'yuna', name: '최유나', department: '마케팅팀', position: '사원', email: 'yuna@company.com', userStatus: 'inactive', password: '1234', avatar: '👩‍🔬', color: '#eb5757', createdAt: '2025-03-01T00:00:00.000Z' },
 ]
 
 export const sampleProjects: Project[] = [

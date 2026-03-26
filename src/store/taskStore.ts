@@ -21,6 +21,11 @@ interface TaskStore {
   updateProject: (id: string, updates: Partial<Project>) => void
   deleteProject: (id: string) => void
 
+  // User actions
+  addUser: (user: Omit<User, 'id' | 'createdAt'>) => string
+  updateUser: (id: string, updates: Partial<User>) => void
+  deleteUser: (id: string) => void
+
   // Getters
   getTasksByProject: (projectId: string) => Task[]
   getTask: (id: string) => Task | undefined
@@ -90,6 +95,23 @@ export const useTaskStore = create<TaskStore>()(
           projects: state.projects.filter((p) => p.id !== id),
           tasks: state.tasks.filter((t) => t.projectId !== id),
         }))
+      },
+
+      addUser: (userData) => {
+        const id = generateId()
+        const user: User = { ...userData, id, createdAt: new Date().toISOString() }
+        set((state) => ({ users: [...state.users, user] }))
+        return id
+      },
+
+      updateUser: (id, updates) => {
+        set((state) => ({
+          users: state.users.map((u) => (u.id === id ? { ...u, ...updates } : u)),
+        }))
+      },
+
+      deleteUser: (id) => {
+        set((state) => ({ users: state.users.filter((u) => u.id !== id) }))
       },
 
       getTasksByProject: (projectId) => {
