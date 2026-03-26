@@ -224,14 +224,14 @@ const UserManagement: React.FC = () => {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">아이디</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">성명</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">부서</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">직위</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">상태</th>
-              <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500">관리자</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">등록일</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 text-center">관리</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 w-44 whitespace-nowrap">아이디</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 w-24 whitespace-nowrap">성명</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 w-28 whitespace-nowrap">부서</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 w-20 whitespace-nowrap">직위</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 w-36 whitespace-nowrap">상태</th>
+              <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500 w-24 whitespace-nowrap">관리자</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 w-24 whitespace-nowrap">등록일</th>
+              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 text-center w-20 whitespace-nowrap">관리</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -245,9 +245,9 @@ const UserManagement: React.FC = () => {
                     <span className="text-sm font-mono text-gray-700">{user.userId}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{user.name}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{user.department}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{user.position || '-'}</td>
+                <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{user.name}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{user.department}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{user.position || '-'}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${USER_STATUS_COLORS[user.userStatus]}`}>
                     [{USER_STATUS_CODES[user.userStatus]}] {USER_STATUS_LABELS[user.userStatus]}
@@ -262,7 +262,7 @@ const UserManagement: React.FC = () => {
                     <span className="text-xs text-gray-300">-</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-xs text-gray-400">
+                <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
                   {new Date(user.createdAt).toLocaleDateString('ko-KR')}
                 </td>
                 <td className="px-4 py-3">
@@ -927,7 +927,7 @@ export const Settings: React.FC = () => {
     <>
       <Header title="설정" />
       <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="flex gap-6">
             <div className="w-48 flex-shrink-0">
               <nav className="space-y-0.5">
