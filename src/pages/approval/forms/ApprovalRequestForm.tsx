@@ -167,7 +167,9 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
     else navigate(`/approval/document/${savedId}`)
   }
 
-  useEffect(() => { onRegisterSave?.(handleSave) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleSaveRef = useRef(handleSave)
+  handleSaveRef.current = handleSave
+  useEffect(() => { onRegisterSave?.(() => handleSaveRef.current()) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 결재선 + 첨부파일 패널 (인라인 JSX) ──
   const rightPanel = (
