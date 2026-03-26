@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Save, Send } from 'lucide-react'
 import { useDocumentStore } from '../../../store/documentStore'
 import { useTaskStore } from '../../../store/taskStore'
+import { useCodeStore } from '../../../store/codeStore'
 import { ApprovalRequestDoc } from '../../../types/document'
 
 const DEFAULT_STEPS = (users: { id: string; name: string }[]) => [
@@ -17,13 +18,34 @@ interface Props {
   onSaved?: (id: string) => void
 }
 
+// ── 문서 헤더 테이블 (문서번호/보존기한/시행일자/기안자/기안부서/기안일자) ──
+const DocHeaderCell: React.FC<{ label: string; children: React.ReactNode; colSpan?: number }> = ({ label, children, colSpan }) => (
+  <td className={`border border-gray-300 align-top${colSpan ? ` colspan-${colSpan}` : ''}`} colSpan={colSpan}>
+    <div className="flex">
+      <span className="bg-gray-50 text-xs font-semibold text-gray-600 px-2 py-2 whitespace-nowrap border-r border-gray-300 min-w-[64px] flex items-center justify-center">{label}</span>
+      <span className="flex-1">{children}</span>
+    </div>
+  </td>
+)
+
 export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, onSaved }) => {
   const navigate = useNavigate()
   const { addDocument, updateDocument, getDocument, currentUserId } = useDocumentStore()
   const { users } = useTaskStore()
+  const { getActiveItems } = useCodeStore()
+  const retentionItems = getActiveItems('RETENTION')
 
   const existing = editId ? getDocument(editId) as ApprovalRequestDoc | undefined : undefined
+  const currentUser = users.find((u) => u.id === currentUserId)
+  const today = new Date().toISOString().split('T')[0]
 
+  // 문서 헤더 상태
+  const [retentionPeriod, setRetentionPeriod] = useState(existing?.docHeader?.retentionPeriod || '')
+  const [effectiveDate, setEffectiveDate] = useState(existing?.docHeader?.effectiveDate || today)
+  const [drafterDept] = useState(existing?.docHeader?.drafterDept || currentUser?.department || '')
+  const [drafterDate] = useState(existing?.docHeader?.drafterDate || today)
+
+  // 본문 상태
   const [title, setTitle] = useState(existing?.title || '')
   const [purpose, setPurpose] = useState(existing?.content?.purpose || '')
   const [background, setBackground] = useState(existing?.content?.background || '')
@@ -35,19 +57,13 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
     DEFAULT_STEPS(users)
   )
 
-  const handleCancel = () => {
-    if (onCancel) onCancel()
-    else navigate(-1)
-  }
+  const handleCancel = () => { if (onCancel) onCancel(); else navigate(-1) }
 
-  const handleSave = (submit = false) => {
+  const handleSave = () => {
     if (!title.trim()) { alert('제목을 입력해주세요'); return }
     const steps = approvers.map((a, i) => ({
       id: `step-${Date.now()}-${i}`,
-      userId: a.userId,
-      role: a.role,
-      status: 'pending' as const,
-      order: i + 1,
+      userId: a.userId, role: a.role, status: 'pending' as const, order: i + 1,
     }))
     const docData = {
       type: 'approval_request' as const,
@@ -55,26 +71,76 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
       status: 'draft' as const,
       drafterId: currentUserId,
       approvalSteps: steps,
+      docHeader: { retentionPeriod, effectiveDate, drafterDept, drafterDate },
       content: { purpose, background, details, expectedEffect, budget: budget || undefined },
     }
     let savedId: string
-    if (existing && editId) {
-      updateDocument(editId, docData)
-      savedId = editId
-    } else {
-      savedId = addDocument(docData)
-    }
+    if (existing && editId) { updateDocument(editId, docData as Partial<ApprovalRequestDoc>); savedId = editId }
+    else { savedId = addDocument(docData) }
     if (onSaved) onSaved(savedId)
     else navigate(`/approval/document/${savedId}`)
   }
 
   return (
     <div className="space-y-5">
+      {/* ── 문서 헤더 ── */}
+      <div className="border border-gray-300 rounded-lg overflow-hidden text-sm">
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              <DocHeaderCell label="문서번호">
+                <span className="px-2 py-2 block text-xs text-gray-400 italic">
+                  {existing?.docNumber || '저장 시 자동채번 (YYYYMMDDNNN)'}
+                </span>
+              </DocHeaderCell>
+              <DocHeaderCell label="보존기한">
+                <select
+                  value={retentionPeriod}
+                  onChange={(e) => setRetentionPeriod(e.target.value)}
+                  className="w-full px-2 py-2 text-sm outline-none bg-transparent"
+                >
+                  <option value="">선택</option>
+                  {retentionItems.map((item) => (
+                    <option key={item.id} value={item.label}>{item.label}</option>
+                  ))}
+                </select>
+              </DocHeaderCell>
+              <DocHeaderCell label="시행일자">
+                <input
+                  type="date"
+                  value={effectiveDate}
+                  onChange={(e) => setEffectiveDate(e.target.value)}
+                  className="w-full px-2 py-2 text-sm outline-none bg-transparent"
+                />
+              </DocHeaderCell>
+            </tr>
+            <tr>
+              <DocHeaderCell label="기안자">
+                <span className="px-2 py-2 block text-sm text-gray-700">
+                  {currentUser?.avatar} {currentUser?.name || '-'}
+                </span>
+              </DocHeaderCell>
+              <DocHeaderCell label="기안부서">
+                <span className="px-2 py-2 block text-sm text-gray-700">{drafterDept || '-'}</span>
+              </DocHeaderCell>
+              <DocHeaderCell label="기안일자">
+                <span className="px-2 py-2 block text-sm text-gray-700">
+                  {drafterDate ? new Date(drafterDate).toLocaleDateString('ko-KR') : '-'}
+                </span>
+              </DocHeaderCell>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── 제목 ── */}
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">제목 *</label>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="품의서 제목을 입력하세요"
           className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400" />
       </div>
+
+      {/* ── 본문 필드 ── */}
       {[
         { label: '목적 *', value: purpose, onChange: setPurpose, placeholder: '품의 목적을 입력하세요', rows: 3 },
         { label: '배경', value: background, onChange: setBackground, placeholder: '배경 및 현황을 입력하세요', rows: 3 },
@@ -87,11 +153,14 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
             className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 resize-none" />
         </div>
       ))}
+
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">예산 (선택)</label>
         <input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="예: 1,000,000원"
           className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400" />
       </div>
+
+      {/* ── 결재선 ── */}
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase mb-3">결재선</label>
         <div className="space-y-2">
@@ -108,12 +177,14 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
           ))}
         </div>
       </div>
+
+      {/* ── 버튼 ── */}
       <div className="flex gap-3 justify-end pt-2 border-t border-gray-100">
         <button onClick={handleCancel} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100">취소</button>
-        <button onClick={() => handleSave(false)} className="flex items-center gap-1.5 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+        <button onClick={handleSave} className="flex items-center gap-1.5 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
           <Save size={14} /> 임시저장
         </button>
-        <button onClick={() => handleSave(true)} className="flex items-center gap-1.5 px-5 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700">
+        <button onClick={handleSave} className="flex items-center gap-1.5 px-5 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700">
           <Send size={14} /> 저장
         </button>
       </div>

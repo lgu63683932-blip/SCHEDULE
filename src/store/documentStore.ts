@@ -3,10 +3,24 @@ import { persist } from 'zustand/middleware'
 import { Document, DocumentStatus } from '../types/document'
 import { sampleDocuments } from '../data/sampleDocuments'
 
-let docCounter = { approval_request: 3, business_trip: 2, expense: 3 }
+let docCounter: Record<string, number> = { approval_request: 0, business_trip: 2, expense: 3 }
+
+// 품의서: YYYYMMDD + NNN 형식으로 채번
+const generateApprovalDocNumber = (existing: { docNumber: string }[]): string => {
+  const now = new Date()
+  const ymd =
+    String(now.getFullYear()) +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0')
+  const todayNums = existing
+    .map((d) => d.docNumber)
+    .filter((n) => n.startsWith(ymd) && /^\d{11}$/.test(n))
+    .map((n) => parseInt(n.slice(8), 10))
+  const next = todayNums.length > 0 ? Math.max(...todayNums) + 1 : 1
+  return `${ymd}${String(next).padStart(3, '0')}`
+}
 
 const TYPE_PREFIX: Record<string, string> = {
-  approval_request: '품의',
   business_trip: '출장',
   expense: '지출',
 }
@@ -36,10 +50,16 @@ export const useDocumentStore = create<DocumentStore>()(
 
       addDocument: (docData) => {
         const type = docData.type
-        docCounter[type] = (docCounter[type] || 0) + 1
-        const num = String(docCounter[type]).padStart(3, '0')
-        const year = new Date().getFullYear()
-        const docNumber = `${TYPE_PREFIX[type]}-${year}-${num}`
+        const docs = get().documents
+        let docNumber: string
+        if (type === 'approval_request') {
+          docNumber = generateApprovalDocNumber(docs)
+        } else {
+          docCounter[type] = (docCounter[type] || 0) + 1
+          const num = String(docCounter[type]).padStart(3, '0')
+          const year = new Date().getFullYear()
+          docNumber = `${TYPE_PREFIX[type]}-${year}-${num}`
+        }
         const id = `doc-${Date.now()}`
         const now = new Date().toISOString()
         const newDoc = { ...docData, id, docNumber, createdAt: now, updatedAt: now } as Document
@@ -86,10 +106,9 @@ export const useDocumentStore = create<DocumentStore>()(
             : s
         )
         const allApproved = steps.every((s) => s.status === 'approved')
-        const status: DocumentStatus = allApproved ? 'approved' : 'in_progress'
         set((state) => ({
           documents: state.documents.map((d) =>
-            d.id === docId ? { ...d, status, approvalSteps: steps, updatedAt: now } as Document : d
+            d.id === docId ? { ...d, status: allApproved ? 'approved' : 'in_progress', approvalSteps: steps, updatedAt: now } as Document : d
           ),
         }))
       },

@@ -198,6 +198,43 @@ const Field: React.FC<{ label: string; value?: string | null; className?: string
 
 const ApprovalRequestContent: React.FC<{ doc: ApprovalRequestDoc }> = ({ doc }) => (
   <div className="space-y-5">
+    {/* 문서 헤더 */}
+    {doc.docHeader && (
+      <div className="border border-gray-300 rounded-lg overflow-hidden text-sm mb-6">
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              {[
+                { label: '문서번호', value: doc.docNumber },
+                { label: '보존기한', value: doc.docHeader.retentionPeriod || '-' },
+                { label: '시행일자', value: doc.docHeader.effectiveDate ? new Date(doc.docHeader.effectiveDate).toLocaleDateString('ko-KR') : '-' },
+              ].map(({ label, value }) => (
+                <td key={label} className="border border-gray-300">
+                  <div className="flex">
+                    <span className="bg-gray-50 text-xs font-semibold text-gray-600 px-2 py-2 whitespace-nowrap border-r border-gray-300 min-w-[64px] flex items-center justify-center">{label}</span>
+                    <span className="px-2 py-2 text-sm text-gray-700 flex-1">{value}</span>
+                  </div>
+                </td>
+              ))}
+            </tr>
+            <tr>
+              {[
+                { label: '기안자', value: doc.approvalSteps[0] ? undefined : '-' },
+                { label: '기안부서', value: doc.docHeader.drafterDept || '-' },
+                { label: '기안일자', value: doc.docHeader.drafterDate ? new Date(doc.docHeader.drafterDate).toLocaleDateString('ko-KR') : new Date(doc.createdAt).toLocaleDateString('ko-KR') },
+              ].map(({ label, value }) => (
+                <td key={label} className="border border-gray-300">
+                  <div className="flex">
+                    <span className="bg-gray-50 text-xs font-semibold text-gray-600 px-2 py-2 whitespace-nowrap border-r border-gray-300 min-w-[64px] flex items-center justify-center">{label}</span>
+                    <span className="px-2 py-2 text-sm text-gray-700 flex-1">{value}</span>
+                  </div>
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    )}
     <Field label="목적" value={doc.content.purpose} />
     <Field label="배경" value={doc.content.background} />
     <Field label="세부내용" value={doc.content.details} />

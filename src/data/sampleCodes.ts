@@ -68,4 +68,20 @@ export const sampleCodeGroups: CodeGroup[] = [
       { id: 'ec-06', code: '06', label: '기타',     order: 6, isActive: true, createdAt: now },
     ],
   },
+  {
+    id: 'cg-retention',
+    groupCode: 'RETENTION',
+    groupName: '보존기한',
+    description: '문서 보존기한 코드',
+    isSystem: true,
+    createdAt: now,
+    items: [
+      { id: 'rt-01', code: '01', label: '1년',    order: 1, isActive: true, createdAt: now },
+      { id: 'rt-02', code: '02', label: '3년',    order: 2, isActive: true, createdAt: now },
+      { id: 'rt-03', code: '03', label: '5년',    order: 3, isActive: true, createdAt: now },
+      { id: 'rt-04', code: '04', label: '10년',   order: 4, isActive: true, createdAt: now },
+      { id: 'rt-05', code: '05', label: '준영구', order: 5, isActive: true, createdAt: now },
+      { id: 'rt-06', code: '06', label: '영구',   order: 6, isActive: true, createdAt: now },
+    ],
+  },
 ]

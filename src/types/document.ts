@@ -27,6 +27,12 @@ export interface BaseDocument {
 
 export interface ApprovalRequestDoc extends BaseDocument {
   type: 'approval_request'
+  docHeader?: {
+    retentionPeriod?: string  // 보존기한 (코드 label)
+    effectiveDate?: string    // 시행일자 (YYYY-MM-DD)
+    drafterDept?: string      // 기안부서
+    drafterDate?: string      // 기안일자 (YYYY-MM-DD)
+  }
   content: {
     purpose: string      // 목적
     background: string   // 배경
