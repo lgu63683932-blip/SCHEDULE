@@ -68,7 +68,7 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
     existing?.approvalSteps.map((s) => ({ userId: s.userId, role: s.role })) || DEFAULT_STEPS(users)
   )
 
-  // 첨부파일 (메타데이터만 저장, 실제 파일은 세션 유지)
+  // 첨부파일
   const [attachments, setAttachments] = useState<(AttachmentMeta & { _file?: File })[]>(
     existing?.attachments?.map((a) => ({ ...a })) || []
   )
@@ -115,8 +115,8 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
 
   useEffect(() => { onRegisterSave?.(handleSave) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── 결재선 + 첨부파일 패널 (우측 공통) ──
-  const RightPanel = () => (
+  // ── 결재선 + 첨부파일 패널 (인라인 JSX) ──
+  const rightPanel = (
     <div className="space-y-4">
       {/* 결재선 */}
       <div>
@@ -146,10 +146,8 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
           </button>
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
         </div>
-
         {attachments.length === 0 ? (
-          <div
-            onClick={() => fileInputRef.current?.click()}
+          <div onClick={() => fileInputRef.current?.click()}
             className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors">
             <Paperclip size={20} className="mx-auto text-gray-300 mb-1" />
             <div className="text-xs text-gray-400">클릭하여 파일 첨부</div>
@@ -179,8 +177,8 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
     </div>
   )
 
-  // ── 좌측 본문 폼 ──
-  const LeftContent = () => (
+  // ── 좌측 본문 폼 (인라인 JSX) ──
+  const leftContent = (
     <div className="space-y-4">
       {/* 문서 헤더 */}
       <div className="border border-gray-300 rounded-lg overflow-hidden text-sm">
@@ -231,19 +229,26 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
       </div>
 
       {/* 본문 필드 */}
-      {[
-        { label: '목적 *', value: purpose, onChange: setPurpose, placeholder: '품의 목적을 입력하세요', rows: isModal ? 2 : 3 },
-        { label: '배경', value: background, onChange: setBackground, placeholder: '배경 및 현황을 입력하세요', rows: isModal ? 2 : 3 },
-        { label: '세부내용 *', value: details, onChange: setDetails, placeholder: '세부 내용을 입력하세요', rows: isModal ? 4 : 5 },
-        { label: '기대효과', value: expectedEffect, onChange: setExpectedEffect, placeholder: '기대되는 효과를 입력하세요', rows: isModal ? 2 : 3 },
-      ].map((f) => (
-        <div key={f.label}>
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">{f.label}</label>
-          <textarea value={f.value} onChange={(e) => f.onChange(e.target.value)} placeholder={f.placeholder} rows={f.rows}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 resize-none" />
-        </div>
-      ))}
-
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">목적 *</label>
+        <textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="품의 목적을 입력하세요" rows={isModal ? 2 : 3}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 resize-none" />
+      </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">배경</label>
+        <textarea value={background} onChange={(e) => setBackground(e.target.value)} placeholder="배경 및 현황을 입력하세요" rows={isModal ? 2 : 3}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 resize-none" />
+      </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">세부내용 *</label>
+        <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="세부 내용을 입력하세요" rows={isModal ? 4 : 5}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 resize-none" />
+      </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">기대효과</label>
+        <textarea value={expectedEffect} onChange={(e) => setExpectedEffect(e.target.value)} placeholder="기대되는 효과를 입력하세요" rows={isModal ? 2 : 3}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 resize-none" />
+      </div>
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">예산 (선택)</label>
         <input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="예: 1,000,000원"
@@ -251,24 +256,19 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
       </div>
 
       {/* 단일 컬럼 모드일 때만 결재선 여기 */}
-      {!isModal && <RightPanel />}
+      {!isModal && rightPanel}
     </div>
   )
 
   return (
     <div className="flex flex-col gap-4">
       {isModal ? (
-        /* 2컬럼 레이아웃 */
         <div className="flex gap-5">
-          <div className="flex-1 min-w-0">
-            <LeftContent />
-          </div>
-          <div className="w-64 flex-shrink-0">
-            <RightPanel />
-          </div>
+          <div className="flex-1 min-w-0">{leftContent}</div>
+          <div className="w-64 flex-shrink-0">{rightPanel}</div>
         </div>
       ) : (
-        <LeftContent />
+        leftContent
       )}
 
       {/* 버튼 — 모달 아닐 때만 하단에 표시 */}
