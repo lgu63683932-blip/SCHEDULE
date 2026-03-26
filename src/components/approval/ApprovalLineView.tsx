@@ -20,32 +20,36 @@ export const ApprovalLineView: React.FC<Props> = ({ steps }) => {
 
         return (
           <React.Fragment key={step.id}>
-            <div className={`flex flex-col items-center p-3 rounded-xl border min-w-28 ${
+            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${
               isApproved ? 'bg-green-50 border-green-200' :
               isRejected ? 'bg-red-50 border-red-200' :
               'bg-gray-50 border-gray-200'
             }`}>
-              <div className="flex items-center justify-between w-full mb-2">
-                <span className="text-xs text-gray-500 font-medium">{step.role}</span>
-                {isApproved && <CheckCircle size={14} className="text-green-500" />}
-                {isRejected && <XCircle size={14} className="text-red-500" />}
-                {isPending && <Clock size={14} className="text-gray-400" />}
+              {/* 아바타 */}
+              <div className="text-2xl flex-shrink-0">{user?.avatar || '👤'}</div>
+              {/* 정보 */}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-xs text-gray-500 font-medium">{step.role}</span>
+                  {isApproved && <CheckCircle size={12} className="text-green-500 flex-shrink-0" />}
+                  {isRejected && <XCircle size={12} className="text-red-500 flex-shrink-0" />}
+                  {isPending && <Clock size={12} className="text-gray-400 flex-shrink-0" />}
+                </div>
+                <div className="text-sm font-semibold text-gray-800 whitespace-nowrap">{user?.name || '미지정'}</div>
+                {step.approvedAt && (
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    {new Date(step.approvedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                  </div>
+                )}
               </div>
-              <div className="text-xl mb-1">{user?.avatar || '👤'}</div>
-              <div className="text-xs font-medium text-gray-700">{user?.name || '미지정'}</div>
-              {step.approvedAt && (
-                <div className="text-xs text-gray-400 mt-1">
-                  {new Date(step.approvedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                </div>
-              )}
-              {step.comment && (
-                <div className="text-xs text-gray-500 mt-1.5 bg-white rounded px-2 py-1 border border-gray-200 max-w-full text-center leading-relaxed">
-                  "{step.comment}"
-                </div>
-              )}
             </div>
+            {step.comment && (
+              <div className="text-xs text-gray-500 bg-white rounded px-2 py-1 border border-gray-200 max-w-48 leading-relaxed self-center">
+                "{step.comment}"
+              </div>
+            )}
             {i < steps.length - 1 && (
-              <div className="flex items-center pt-8">
+              <div className="flex items-center">
                 <ChevronRight size={16} className="text-gray-300" />
               </div>
             )}
