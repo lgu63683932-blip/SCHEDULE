@@ -925,10 +925,19 @@ const ApprovalLineManagement: React.FC = () => {
     setShowForm(true)
   }
 
-  const addStep = () => setFormSteps((prev) => [...prev, { userId: users[0]?.id || 'user1', role: '검토자' }])
+  const getUserRole = (userId: string) => {
+    const u = users.find((u) => u.id === userId)
+    return u?.position || u?.department || '검토자'
+  }
+  const addStep = () => {
+    const uid = users[0]?.id || 'user1'
+    setFormSteps((prev) => [...prev, { userId: uid, role: getUserRole(uid) }])
+  }
   const removeStep = (i: number) => setFormSteps((prev) => prev.filter((_, idx) => idx !== i))
-  const updateStep = (i: number, field: 'userId' | 'role', value: string) => {
-    setFormSteps((prev) => prev.map((s, idx) => idx === i ? { ...s, [field]: value } : s))
+  const updateStepUser = (i: number, userId: string) => {
+    setFormSteps((prev) => prev.map((s, idx) =>
+      idx === i ? { ...s, userId, role: getUserRole(userId) } : s
+    ))
   }
 
   const saveForm = () => {
@@ -1025,10 +1034,10 @@ const ApprovalLineManagement: React.FC = () => {
                   {formSteps.map((step, i) => (
                     <div key={i} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
                       <span className="text-xs text-gray-400 w-5 text-center font-medium">{i + 1}</span>
-                      <input value={step.role} onChange={(e) => updateStep(i, 'role', e.target.value)}
-                        placeholder="역할 (예: 팀장)"
-                        className="w-24 border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-white" />
-                      <select value={step.userId} onChange={(e) => updateStep(i, 'userId', e.target.value)}
+                      <span className="w-20 border border-gray-200 rounded px-2 py-1.5 text-xs bg-white text-gray-600 truncate select-none flex-shrink-0">
+                        {step.role}
+                      </span>
+                      <select value={step.userId} onChange={(e) => updateStepUser(i, e.target.value)}
                         className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-white">
                         {users.map((u) => <option key={u.id} value={u.id}>{u.avatar} {u.name} ({u.department})</option>)}
                       </select>

@@ -81,10 +81,19 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
     setSelectedTemplateId(tplId)
   }
 
-  const addApprover = () => setApprovers((prev) => [...prev, { userId: users[0]?.id || 'user1', role: '검토자' }])
+  const getUserRole = (userId: string) => {
+    const u = users.find((u) => u.id === userId)
+    return u?.position || u?.department || '검토자'
+  }
+  const addApprover = () => {
+    const uid = users[0]?.id || 'user1'
+    setApprovers((prev) => [...prev, { userId: uid, role: getUserRole(uid) }])
+  }
   const removeApprover = (i: number) => setApprovers((prev) => prev.filter((_, idx) => idx !== i))
-  const updateApprover = (i: number, field: 'userId' | 'role', value: string) => {
-    setApprovers((prev) => prev.map((a, idx) => idx === i ? { ...a, [field]: value } : a))
+  const updateApproverUser = (i: number, userId: string) => {
+    setApprovers((prev) => prev.map((a, idx) =>
+      idx === i ? { ...a, userId, role: getUserRole(userId) } : a
+    ))
   }
 
   // 첨부파일
@@ -159,9 +168,10 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
         <div className="space-y-1.5">
           {approvers.map((approver, i) => (
             <div key={i} className="flex items-center gap-1.5">
-              <input value={approver.role} onChange={(e) => updateApprover(i, 'role', e.target.value)}
-                className="w-16 border border-gray-300 rounded px-1.5 py-1.5 text-xs outline-none focus:border-blue-400 flex-shrink-0" />
-              <select value={approver.userId} onChange={(e) => updateApprover(i, 'userId', e.target.value)}
+              <span className="w-16 border border-gray-200 rounded px-1.5 py-1.5 text-xs bg-gray-50 text-gray-600 flex-shrink-0 truncate select-none">
+                {approver.role}
+              </span>
+              <select value={approver.userId} onChange={(e) => updateApproverUser(i, e.target.value)}
                 disabled={i === 0}
                 className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-400 min-w-0">
                 {users.map((u) => <option key={u.id} value={u.id}>{u.avatar} {u.name}</option>)}
