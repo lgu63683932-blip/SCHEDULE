@@ -119,6 +119,7 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
   }
 
   const removeAttachment = (id: string) => setAttachments((prev) => prev.filter((a) => a.id !== id))
+  const renameAttachment = (id: string, name: string) => setAttachments((prev) => prev.map((a) => a.id === id ? { ...a, name } : a))
 
   const handleSave = () => {
     if (!title.trim()) { alert('제목을 입력해주세요'); return }
@@ -219,7 +220,11 @@ export const ApprovalRequestFormContent: React.FC<Props> = ({ editId, onCancel, 
               <div key={att.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200 group">
                 <FileIcon size={14} className="text-blue-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-gray-700 truncate">{att.name}</div>
+                  <input
+                    value={att.name}
+                    onChange={(e) => renameAttachment(att.id, e.target.value)}
+                    className="w-full text-xs font-medium text-gray-700 bg-transparent outline-none border-b border-transparent focus:border-blue-400 focus:bg-white focus:px-1 rounded-sm transition-all"
+                  />
                   <div className="text-xs text-gray-400">{formatBytes(att.size)}</div>
                 </div>
                 <button onClick={() => removeAttachment(att.id)}
