@@ -37,6 +37,7 @@ export interface User {
   email?: string       // 이메일
   joinDate?: string    // 입사일 (YYYY-MM-DD)
   userStatus: UserStatus // 상태코드
+  isAdmin?: boolean    // 시스템 관리자 여부
   password?: string    // 비밀번호
   avatar: string
   color: string

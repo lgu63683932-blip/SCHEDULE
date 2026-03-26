@@ -23,6 +23,7 @@ interface UserFormData {
   email: string
   joinDate: string
   userStatus: UserStatus
+  isAdmin: boolean
   password: string
   avatar: string
   color: string
@@ -31,7 +32,7 @@ interface UserFormData {
 const emptyForm = (): UserFormData => ({
   userId: '', name: '', department: '개발팀', position: '사원',
   email: '', joinDate: new Date().toISOString().split('T')[0],
-  userStatus: 'password_assigned', password: '', avatar: '👤', color: '#2383e2',
+  userStatus: 'password_assigned', isAdmin: false, password: '', avatar: '👤', color: '#2383e2',
 })
 
 const generateUserId = (existingUsers: { userId: string }[], joinDate?: string): string => {
@@ -110,6 +111,7 @@ const UserManagement: React.FC = () => {
       email: user.email || '',
       joinDate: user.joinDate || '',
       userStatus: user.userStatus,
+      isAdmin: user.isAdmin ?? false,
       password: user.password || '',
       avatar: user.avatar,
       color: user.color,
@@ -152,13 +154,13 @@ const UserManagement: React.FC = () => {
       updateUser(editingId, {
         userId: form.userId, name: form.name, department: form.department,
         position: form.position, email: form.email, joinDate: form.joinDate || undefined,
-        userStatus: form.userStatus, password: form.password, avatar: form.avatar, color: form.color,
+        userStatus: form.userStatus, isAdmin: form.isAdmin, password: form.password, avatar: form.avatar, color: form.color,
       })
     } else {
       addUser({
         userId: form.userId, name: form.name, department: form.department,
         position: form.position, email: form.email, joinDate: form.joinDate || undefined,
-        userStatus: form.userStatus, password: form.password, avatar: form.avatar, color: form.color,
+        userStatus: form.userStatus, isAdmin: form.isAdmin, password: form.password, avatar: form.avatar, color: form.color,
       })
     }
     setShowModal(false)
@@ -223,13 +225,14 @@ const UserManagement: React.FC = () => {
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">부서</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">직위</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">상태</th>
+              <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500">관리자</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">등록일</th>
               <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 text-center">관리</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-8 text-sm text-gray-400">검색 결과가 없습니다</td></tr>
+              <tr><td colSpan={8} className="text-center py-8 text-sm text-gray-400">검색 결과가 없습니다</td></tr>
             ) : filtered.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3">
@@ -245,6 +248,15 @@ const UserManagement: React.FC = () => {
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${USER_STATUS_COLORS[user.userStatus]}`}>
                     [{USER_STATUS_CODES[user.userStatus]}] {USER_STATUS_LABELS[user.userStatus]}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {user.isAdmin ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                      <Shield size={10} /> 관리자
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-300">-</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-400">
                   {new Date(user.createdAt).toLocaleDateString('ko-KR')}
@@ -418,6 +430,23 @@ const UserManagement: React.FC = () => {
                   </button>
                 </div>
                 {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+              </div>
+
+              {/* 시스템 관리자 */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div>
+                  <div className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                    <Shield size={14} className="text-purple-500" /> 시스템 관리자
+                  </div>
+                  <div className="text-xs text-gray-400 mt-0.5">모든 메뉴 및 사용자 관리 권한 부여</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, isAdmin: !f.isAdmin }))}
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${form.isAdmin ? 'bg-purple-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${form.isAdmin ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
               </div>
 
               {/* 상태 */}
