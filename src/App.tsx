@@ -10,6 +10,7 @@ import { ApprovalMain } from './pages/approval/ApprovalMain'
 import { MyDocuments } from './pages/approval/MyDocuments'
 import { ApprovalBox } from './pages/approval/ApprovalBox'
 import { DocumentDetail } from './pages/approval/DocumentDetail'
+import { DocumentListPage } from './pages/approval/DocumentListPage'
 import { ApprovalRequestForm } from './pages/approval/forms/ApprovalRequestForm'
 import { BusinessTripForm } from './pages/approval/forms/BusinessTripForm'
 import { ExpenseForm } from './pages/approval/forms/ExpenseForm'
@@ -39,6 +40,10 @@ export default function App() {
           <Route path="/approval/inbox" element={<ApprovalBox />} />
           <Route path="/approval/my-documents" element={<MyDocuments />} />
           <Route path="/approval/document/:id" element={<DocumentDetail />} />
+          {/* 결재등록 목록 페이지 (모달 작성 포함) */}
+          <Route path="/approval/list/approval-request" element={<DocumentListPage type="approval_request" />} />
+          <Route path="/approval/list/business-trip" element={<DocumentListPage type="business_trip" />} />
+          <Route path="/approval/list/expense" element={<DocumentListPage type="expense" />} />
           <Route path="/approval/new/approval-request" element={<ApprovalRequestForm />} />
           <Route path="/approval/new/business-trip" element={<BusinessTripForm />} />
           <Route path="/approval/new/expense" element={<ExpenseForm />} />

@@ -189,9 +189,9 @@ export const Sidebar: React.FC = () => {
           open={registerOpen}
           onToggle={() => setRegisterOpen(!registerOpen)}
         >
-          {navLink('/approval/new/approval-request', '품의서', <FileSignature size={15} />)}
-          {navLink('/approval/new/business-trip', '출장보고서', <Plane size={15} />)}
-          {navLink('/approval/new/expense', '지출결의서', <Receipt size={15} />)}
+          {navLink('/approval/list/approval-request', '품의서', <FileSignature size={15} />)}
+          {navLink('/approval/list/business-trip', '출장보고서', <Plane size={15} />)}
+          {navLink('/approval/list/expense', '지출결의서', <Receipt size={15} />)}
         </NavGroup>
 
         {/* 프로젝트 — 보라색 */}
