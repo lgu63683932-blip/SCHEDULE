@@ -9,39 +9,94 @@ import {
   ChevronDown,
   ChevronRight,
   Plus,
-  Hash,
-  FileText,
   ClipboardCheck,
   FolderOpen,
+  CalendarDays,
+  FileSignature,
+  Plane,
+  Receipt,
+  FolderKanban,
 } from 'lucide-react'
 import { useTaskStore } from '../../store/taskStore'
 import { useDocumentStore } from '../../store/documentStore'
-import { generateId } from '../../utils/helpers'
 
 const PROJECT_COLORS = [
   '#2383e2', '#0f7b6c', '#cb912f', '#eb5757',
   '#9065b0', '#d9730d', '#448361', '#337ea9',
 ]
-
 const PROJECT_ICONS = ['🌐', '📱', '📢', '📊', '🎯', '💡', '🚀', '🔧']
+
+const NavGroup: React.FC<{
+  label: string
+  icon: React.ReactNode
+  open: boolean
+  onToggle: () => void
+  onAdd?: () => void
+  children: React.ReactNode
+}> = ({ label, icon, open, onToggle, onAdd, children }) => (
+  <div className="px-2 mt-1">
+    <div
+      className="flex items-center justify-between px-2.5 py-1 rounded-md cursor-pointer hover:bg-notion-hover group mb-0.5"
+      onClick={onToggle}
+    >
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-notion-textSecondary uppercase tracking-wide">
+        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <span className="mr-1 opacity-70">{icon}</span>
+        {label}
+      </div>
+      {onAdd && (
+        <button
+          className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-notion-active rounded transition-opacity"
+          onClick={(e) => { e.stopPropagation(); onAdd() }}
+        >
+          <Plus size={14} className="text-notion-textSecondary" />
+        </button>
+      )}
+    </div>
+    {open && <div className="space-y-0.5">{children}</div>}
+  </div>
+)
 
 export const Sidebar: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { projects, addProject } = useTaskStore()
   const { getPendingCount } = useDocumentStore()
-  const [projectsOpen, setProjectsOpen] = useState(true)
-  const [approvalOpen, setApprovalOpen] = useState(true)
-  const [addingProject, setAddingProject] = useState(false)
-  const [newProjectName, setNewProjectName] = useState('')
   const pendingCount = getPendingCount()
 
-  const navItems = [
-    { path: '/', label: '대시보드', icon: <LayoutDashboard size={16} /> },
-    { path: '/tasks', label: '내 할 일', icon: <CheckSquare size={16} /> },
-    { path: '/calendar', label: '캘린더', icon: <Calendar size={16} /> },
-    { path: '/inbox', label: '받은 편지함', icon: <Inbox size={16} /> },
-  ]
+  const [scheduleOpen, setScheduleOpen] = useState(true)
+  const [approvalOpen, setApprovalOpen] = useState(true)
+  const [registerOpen, setRegisterOpen] = useState(true)
+  const [projectsOpen, setProjectsOpen] = useState(true)
+  const [addingProject, setAddingProject] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
+
+  const isActive = (path: string) => location.pathname === path
+
+  const navLink = (
+    path: string,
+    label: string,
+    icon: React.ReactNode,
+    badge?: number
+  ) => (
+    <Link
+      key={path}
+      to={path}
+      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+        isActive(path)
+          ? 'bg-notion-active text-notion-text font-medium'
+          : 'text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text'
+      }`}
+    >
+      {icon}
+      <span className="flex-1">{label}</span>
+      {badge ? (
+        <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-4 text-center">
+          {badge}
+        </span>
+      ) : null}
+    </Link>
+  )
 
   const handleAddProject = () => {
     if (newProjectName.trim()) {
@@ -73,138 +128,98 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2">
+        {/* 대시보드 */}
         <div className="px-2 mb-1">
-          {navItems.map((item) => (
+          <Link
+            to="/"
+            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+              isActive('/')
+                ? 'bg-notion-active text-notion-text font-medium'
+                : 'text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text'
+            }`}
+          >
+            <LayoutDashboard size={16} />
+            대시보드
+          </Link>
+        </div>
+
+        {/* 일정관리 */}
+        <NavGroup
+          label="일정관리"
+          icon={<CalendarDays size={13} />}
+          open={scheduleOpen}
+          onToggle={() => setScheduleOpen(!scheduleOpen)}
+        >
+          {navLink('/tasks', '내 할 일', <CheckSquare size={15} />)}
+          {navLink('/calendar', '캘린더', <Calendar size={15} />)}
+          {navLink('/inbox', '받은 편지함', <Inbox size={15} />)}
+        </NavGroup>
+
+        {/* 전자결재 */}
+        <NavGroup
+          label="전자결재"
+          icon={<ClipboardCheck size={13} />}
+          open={approvalOpen}
+          onToggle={() => setApprovalOpen(!approvalOpen)}
+        >
+          {navLink('/approval', '결재홈', <ClipboardCheck size={15} />)}
+          {navLink('/approval/inbox', '결재함', <Inbox size={15} />, pendingCount || undefined)}
+          {navLink('/approval/my-documents', '내문서함', <FolderOpen size={15} />)}
+        </NavGroup>
+
+        {/* 결재등록 */}
+        <NavGroup
+          label="결재등록"
+          icon={<FileSignature size={13} />}
+          open={registerOpen}
+          onToggle={() => setRegisterOpen(!registerOpen)}
+        >
+          {navLink('/approval/new/approval-request', '품의서', <FileSignature size={15} />)}
+          {navLink('/approval/new/business-trip', '출장보고서', <Plane size={15} />)}
+          {navLink('/approval/new/expense', '지출결의서', <Receipt size={15} />)}
+        </NavGroup>
+
+        {/* 프로젝트 */}
+        <NavGroup
+          label="프로젝트"
+          icon={<FolderKanban size={13} />}
+          open={projectsOpen}
+          onToggle={() => setProjectsOpen(!projectsOpen)}
+          onAdd={() => { setAddingProject(true); setProjectsOpen(true) }}
+        >
+          {projects.map((project) => (
             <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors mb-0.5 ${
-                location.pathname === item.path
+              key={project.id}
+              to={`/project/${project.id}`}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+                location.pathname === `/project/${project.id}`
                   ? 'bg-notion-active text-notion-text font-medium'
                   : 'text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text'
               }`}
             >
-              {item.icon}
-              {item.label}
+              <span className="text-base leading-none">{project.icon}</span>
+              <span className="truncate">{project.name}</span>
             </Link>
           ))}
-        </div>
-
-        {/* Approval section */}
-        <div className="px-2 mt-3">
-          <div
-            className="flex items-center justify-between px-2.5 py-1 rounded-md cursor-pointer hover:bg-notion-hover group mb-1"
-            onClick={() => setApprovalOpen(!approvalOpen)}
-          >
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-notion-textSecondary uppercase tracking-wide">
-              {approvalOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              전자결재
-            </div>
-          </div>
-          {approvalOpen && (
-            <div className="space-y-0.5">
-              {[
-                { path: '/approval', label: '결재 홈', icon: <ClipboardCheck size={15} /> },
-                { path: '/approval/inbox', label: '결재함', icon: <Inbox size={15} />, badge: pendingCount },
-                { path: '/approval/my-documents', label: '내 문서함', icon: <FolderOpen size={15} /> },
-              ].map((item) => (
-                <Link key={item.path} to={item.path}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
-                    location.pathname === item.path
-                      ? 'bg-notion-active text-notion-text font-medium'
-                      : 'text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text'
-                  }`}
-                >
-                  {item.icon}
-                  <span className="flex-1">{item.label}</span>
-                  {item.badge ? (
-                    <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-4 text-center">
-                      {item.badge}
-                    </span>
-                  ) : null}
-                </Link>
-              ))}
-              <div className="pt-1 pb-0.5">
-                <div className="text-xs text-notion-textSecondary px-2.5 py-1 opacity-60">새 문서</div>
-                {[
-                  { path: '/approval/new/approval-request', label: '📋 품의서' },
-                  { path: '/approval/new/business-trip', label: '✈️ 출장보고서' },
-                  { path: '/approval/new/expense', label: '💰 지출결의서' },
-                ].map((item) => (
-                  <Link key={item.path} to={item.path}
-                    className="flex items-center gap-2 px-2.5 py-1 rounded-md text-xs transition-colors text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text">
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+          {addingProject && (
+            <div className="px-2.5 py-1">
+              <input
+                autoFocus
+                type="text"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                onBlur={handleAddProject}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddProject()
+                  if (e.key === 'Escape') { setAddingProject(false); setNewProjectName('') }
+                }}
+                placeholder="프로젝트 이름..."
+                className="w-full text-sm bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-blue-400"
+              />
             </div>
           )}
-        </div>
-
-        {/* Projects section */}
-        <div className="px-2 mt-3">
-          <div
-            className="flex items-center justify-between px-2.5 py-1 rounded-md cursor-pointer hover:bg-notion-hover group mb-1"
-            onClick={() => setProjectsOpen(!projectsOpen)}
-          >
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-notion-textSecondary uppercase tracking-wide">
-              {projectsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              프로젝트
-            </div>
-            <button
-              className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-notion-active rounded transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation()
-                setAddingProject(true)
-                setProjectsOpen(true)
-              }}
-            >
-              <Plus size={14} className="text-notion-textSecondary" />
-            </button>
-          </div>
-
-          {projectsOpen && (
-            <div className="space-y-0.5">
-              {projects.map((project) => (
-                <Link
-                  key={project.id}
-                  to={`/project/${project.id}`}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
-                    location.pathname === `/project/${project.id}`
-                      ? 'bg-notion-active text-notion-text font-medium'
-                      : 'text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text'
-                  }`}
-                >
-                  <span className="text-base leading-none">{project.icon}</span>
-                  <span className="truncate">{project.name}</span>
-                </Link>
-              ))}
-
-              {addingProject && (
-                <div className="px-2.5 py-1">
-                  <input
-                    autoFocus
-                    type="text"
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
-                    onBlur={handleAddProject}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddProject()
-                      if (e.key === 'Escape') {
-                        setAddingProject(false)
-                        setNewProjectName('')
-                      }
-                    }}
-                    placeholder="프로젝트 이름..."
-                    className="w-full text-sm bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-blue-400"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        </NavGroup>
       </nav>
 
       {/* Settings & User */}
