@@ -901,18 +901,18 @@ const ApprovalLineManagement: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [formName, setFormName] = useState('')
-  const [formSteps, setFormSteps] = useState<ApprovalLineStep[]>([
-    { userId: 'user1', role: '기안자' },
-    { userId: users[1]?.id || 'user2', role: '팀장' },
-  ])
+  const [formSteps, setFormSteps] = useState<ApprovalLineStep[]>([])
+
+  const getUserRole = (userId: string) => {
+    const u = users.find((u) => u.id === userId)
+    return u?.position || u?.department || '검토자'
+  }
 
   const openNew = () => {
     setEditingId(null)
     setFormName('')
-    setFormSteps([
-      { userId: users[0]?.id || 'user1', role: '기안자' },
-      { userId: users[1]?.id || 'user2', role: '팀장' },
-    ])
+    const uid = users[1]?.id || 'user2'
+    setFormSteps([{ userId: uid, role: getUserRole(uid) }])
     setShowForm(true)
   }
 
@@ -925,10 +925,6 @@ const ApprovalLineManagement: React.FC = () => {
     setShowForm(true)
   }
 
-  const getUserRole = (userId: string) => {
-    const u = users.find((u) => u.id === userId)
-    return u?.position || u?.department || '검토자'
-  }
   const addStep = () => {
     const uid = users[0]?.id || 'user1'
     setFormSteps((prev) => [...prev, { userId: uid, role: getUserRole(uid) }])
@@ -984,10 +980,19 @@ const ApprovalLineManagement: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
+              {/* 기안자 고정 표시 */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 border border-blue-100 rounded-lg text-xs">
+                <span>✍️</span>
+                <div>
+                  <div className="font-medium text-blue-700">기안자</div>
+                  <div className="text-blue-400">자동</div>
+                </div>
+              </div>
               {tpl.steps.map((step, i) => {
                 const u = users.find((u) => u.id === step.userId)
                 return (
                   <React.Fragment key={i}>
+                    <span className="text-gray-300 text-xs">→</span>
                     <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs">
                       <span>{u?.avatar || '👤'}</span>
                       <div>
@@ -995,7 +1000,6 @@ const ApprovalLineManagement: React.FC = () => {
                         <div className="text-gray-400">{step.role}</div>
                       </div>
                     </div>
-                    {i < tpl.steps.length - 1 && <span className="text-gray-300 text-xs">→</span>}
                   </React.Fragment>
                 )
               })}
@@ -1025,15 +1029,21 @@ const ApprovalLineManagement: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase">결재 단계 ({formSteps.length}단계)</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">결재자 ({formSteps.length}명)</label>
                   <button onClick={addStep} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
-                    <Plus size={12} /> 단계 추가
+                    <Plus size={12} /> 결재자 추가
                   </button>
+                </div>
+                {/* 기안자 고정 표시 */}
+                <div className="flex items-center gap-2 p-2.5 bg-blue-50 border border-blue-100 rounded-lg mb-2">
+                  <span className="text-xs text-blue-400 w-5 text-center font-medium">1</span>
+                  <span className="w-20 border border-blue-200 rounded px-2 py-1.5 text-xs bg-white text-blue-600 truncate select-none flex-shrink-0">기안자</span>
+                  <span className="flex-1 border border-blue-200 rounded px-2 py-1.5 text-xs bg-white text-blue-500">문서 작성자 (자동)</span>
                 </div>
                 <div className="space-y-2">
                   {formSteps.map((step, i) => (
-                    <div key={i} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <span className="text-xs text-gray-400 w-5 text-center font-medium">{i + 1}</span>
+                    <div key={i} className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <span className="text-xs text-gray-400 w-5 text-center font-medium">{i + 2}</span>
                       <span className="w-20 border border-gray-200 rounded px-2 py-1.5 text-xs bg-white text-gray-600 truncate select-none flex-shrink-0">
                         {step.role}
                       </span>
@@ -1041,11 +1051,9 @@ const ApprovalLineManagement: React.FC = () => {
                         className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-white">
                         {users.map((u) => <option key={u.id} value={u.id}>{u.avatar} {u.name} ({u.department})</option>)}
                       </select>
-                      {formSteps.length > 1 && (
-                        <button onClick={() => removeStep(i)} className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded">
-                          <X size={12} />
-                        </button>
-                      )}
+                      <button onClick={() => removeStep(i)} className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded flex-shrink-0">
+                        <X size={12} />
+                      </button>
                     </div>
                   ))}
                 </div>

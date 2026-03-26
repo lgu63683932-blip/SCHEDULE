@@ -9,7 +9,6 @@ const DEFAULT_TEMPLATES: ApprovalLineTemplate[] = [
     isDefault: true,
     createdAt: new Date().toISOString(),
     steps: [
-      { userId: 'user1', role: '기안자' },
       { userId: 'user2', role: '팀장' },
       { userId: 'user3', role: '부서장' },
     ],
